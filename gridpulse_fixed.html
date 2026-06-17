@@ -1,0 +1,2297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GridPulse TN — Tamil Nadu Grid Intelligence Platform</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --bg2: #111827;
+    --bg3: #1a2235;
+    --border: rgba(99,179,237,0.15);
+    --border2: rgba(99,179,237,0.3);
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --accent2: #818cf8;
+    --safe: #34d399;
+    --warn: #fbbf24;
+    --danger: #f87171;
+    --danger2: #ef4444;
+    --glow-safe: 0 0 12px rgba(52,211,153,0.4);
+    --glow-warn: 0 0 12px rgba(251,191,36,0.4);
+    --glow-danger: 0 0 16px rgba(248,113,113,0.5);
+    --font: 'Segoe UI', system-ui, sans-serif;
+    --mono: 'Consolas', 'Fira Code', monospace;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:var(--font); font-size:14px; overflow-x:hidden; }
+
+  /* NAV */
+  nav { background:var(--bg2); border-bottom:1px solid var(--border); padding:0 24px; display:flex; align-items:center; gap:0; height:52px; position:sticky; top:0; z-index:100; }
+  .nav-brand { font-size:15px; font-weight:700; letter-spacing:-0.5px; color:var(--accent); margin-right:32px; white-space:nowrap; }
+  .nav-brand span { color:var(--text); }
+  .nav-tabs { display:flex; gap:2px; flex:1; overflow-x:auto; scrollbar-width:none; }
+  .nav-tabs::-webkit-scrollbar { display:none; }
+  .nav-tab { padding:6px 14px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:500; color:var(--muted); white-space:nowrap; transition:all .2s; border:none; background:none; }
+  .nav-tab:hover { color:var(--text); background:var(--bg3); }
+  .nav-tab.active { color:var(--accent); background:rgba(56,189,248,0.1); }
+  .live-badge { margin-left:auto; display:flex; align-items:center; gap:6px; font-size:11px; color:var(--safe); white-space:nowrap; }
+  .live-dot { width:7px; height:7px; background:var(--safe); border-radius:50%; animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(0.8)} }
+
+  /* PAGES */
+  .page { display:none; padding:20px 24px; min-height:calc(100vh - 52px); }
+  .page.active { display:block; }
+
+  /* SHARED COMPONENTS */
+  .section-title { font-size:11px; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); margin-bottom:12px; }
+  .card { background:var(--bg2); border:1px solid var(--border); border-radius:10px; padding:16px; }
+  .card-title { font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:12px; }
+  .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
+  .grid-4 { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+  .metric-val { font-size:28px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .metric-label { font-size:11px; color:var(--muted); margin-top:2px; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:4px; font-size:10px; font-weight:600; text-transform:uppercase; }
+  .badge-safe { background:rgba(52,211,153,0.15); color:var(--safe); }
+  .badge-warn { background:rgba(251,191,36,0.15); color:var(--warn); }
+  .badge-danger { background:rgba(248,113,113,0.15); color:var(--danger); }
+  .chart-wrap { position:relative; width:100%; }
+  label { font-size:12px; color:var(--muted); }
+  input[type=range] { width:100%; accent-color:var(--accent); cursor:pointer; }
+  select { background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:6px 10px; border-radius:6px; font-size:12px; cursor:pointer; }
+  button.btn { background:rgba(56,189,248,0.1); border:1px solid var(--accent); color:var(--accent); padding:7px 16px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:500; transition:all .2s; }
+  button.btn:hover { background:rgba(56,189,248,0.2); }
+  button.btn-danger { background:rgba(248,113,113,0.1); border-color:var(--danger); color:var(--danger); }
+  button.btn-danger:hover { background:rgba(248,113,113,0.2); }
+  button.btn-warn { background:rgba(251,191,36,0.1); border-color:var(--warn); color:var(--warn); }
+  button.btn-warn:hover { background:rgba(251,191,36,0.2); }
+  .row { display:flex; gap:16px; align-items:flex-start; }
+  .row > * { flex:1; }
+  hr.divider { border:none; border-top:1px solid var(--border); margin:16px 0; }
+  .mono { font-family:var(--mono); }
+
+  /* === PAGE 1: HERO DASHBOARD === */
+  .hero-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:12px; }
+  .hero-title { font-size:22px; font-weight:700; letter-spacing:-0.5px; }
+  .hero-sub { font-size:13px; color:var(--muted); margin-top:2px; }
+  .kpi-strip { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:20px; }
+  .kpi { background:var(--bg2); border:1px solid var(--border); border-radius:10px; padding:14px 16px; }
+  .kpi .val { font-size:24px; font-weight:700; }
+  .kpi .lbl { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-top:3px; }
+  .kpi .delta { font-size:11px; margin-top:4px; }
+  .delta-up { color:var(--danger); }
+  .delta-dn { color:var(--safe); }
+  .forecast-section { display:grid; grid-template-columns:2fr 1fr; gap:16px; margin-bottom:20px; }
+  .scenario-bar { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+  .scenario-btn { padding:5px 12px; border-radius:20px; border:1px solid var(--border); background:none; color:var(--muted); font-size:11px; cursor:pointer; transition:all .2s; }
+  .scenario-btn.active { border-color:var(--accent); color:var(--accent); background:rgba(56,189,248,0.1); }
+  .slider-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  .slider-label { font-size:11px; color:var(--muted); min-width:90px; }
+  .slider-val { font-size:12px; font-weight:600; min-width:36px; text-align:right; color:var(--text); }
+  .ci-legend { display:flex; gap:12px; font-size:11px; color:var(--muted); margin-bottom:8px; flex-wrap:wrap; }
+  .ci-swatch { display:inline-block; width:24px; height:3px; border-radius:2px; vertical-align:middle; margin-right:4px; }
+
+  /* === SHARED: RISK SOUND CUES === */
+  .sound-toggle-btn { background:rgba(56,189,248,0.1); border:1px solid var(--accent); color:var(--accent); padding:7px 14px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:600; white-space:nowrap; transition:all .2s; }
+  .sound-toggle-btn:hover { background:rgba(56,189,248,0.2); }
+  .sound-toggle-btn.btn-warn { background:rgba(251,191,36,0.1); border-color:var(--warn); color:var(--warn); }
+  .risk-legend-mini { display:flex; gap:14px; font-size:10.5px; color:var(--muted); align-items:center; flex-wrap:wrap; }
+  .risk-legend-mini .dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:4px; vertical-align:middle; }
+
+  /* === PAGE 2: ZONE RISK === */
+  .zones-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:20px; }
+  .zone-card { background:var(--bg2); border-radius:12px; padding:18px; border:1px solid var(--border); position:relative; transition:border-color .3s, box-shadow .3s; cursor:pointer; }
+  .zone-card.safe { border-color:rgba(52,211,153,0.4); box-shadow:var(--glow-safe); }
+  .zone-card.warn { border-color:rgba(251,191,36,0.4); box-shadow:var(--glow-warn); }
+  .zone-card.danger { border-color:rgba(248,113,113,0.5); box-shadow:var(--glow-danger); animation:danger-pulse 2s ease-in-out infinite; }
+  @keyframes danger-pulse { 0%,100%{box-shadow:0 0 16px rgba(248,113,113,0.5)} 50%{box-shadow:0 0 28px rgba(248,113,113,0.8)} }
+  .zone-name { font-size:14px; font-weight:600; margin-bottom:4px; }
+  .zone-load-big { font-size:32px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .zone-stats { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:10px; }
+  .zone-stat { font-size:11px; color:var(--muted); }
+  .zone-stat span { color:var(--text); font-weight:600; }
+  .zone-trajectory { height:64px; margin-top:10px; }
+  .zone-risk-bar-track { height:8px; border-radius:4px; background:rgba(255,255,255,0.06); margin-top:10px; overflow:hidden; position:relative; }
+  .zone-risk-bar-fill { height:100%; border-radius:4px; transition:width .5s ease; }
+  .zone-risk-bar-marker { position:absolute; top:-3px; bottom:-3px; width:2px; background:rgba(255,255,255,0.35); }
+  .zone-risk-bar-labels { display:flex; justify-content:space-between; font-size:9px; color:var(--muted); margin-top:4px; }
+  .district-search { display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; align-items:center; }
+  .district-search input { background:var(--bg2); border:1px solid var(--border); color:var(--text); padding:7px 12px; border-radius:6px; font-size:12px; flex:1; min-width:200px; }
+  .district-search input:focus { outline:none; border-color:var(--accent); }
+  .all-districts-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:10px; }
+  .dist-row { background:var(--bg2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; display:flex; align-items:center; justify-content:space-between; transition:border-color .2s; cursor:pointer; }
+  .dist-row:hover { border-color:var(--accent); }
+  .dist-row.safe { border-left:3px solid var(--safe); }
+  .dist-row.warn { border-left:3px solid var(--warn); }
+  .dist-row.danger { border-left:3px solid var(--danger); }
+  .dist-name { font-size:12px; font-weight:500; }
+  .dist-load { font-size:13px; font-weight:700; }
+
+  /* === PAGE 3: OPTIMIZER === */
+  .optimizer-controls { background:var(--bg2); border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:16px; }
+  .optimizer-run-row { display:flex; align-items:center; gap:14px; margin-top:14px; padding-top:14px; border-top:1px solid var(--border); }
+  .optimizer-run-row .btn { flex:0 0 auto; padding:9px 22px; font-size:13px; }
+  .optimizer-run-hint { font-size:11px; color:var(--muted); flex:1; }
+  .optimizer-result { background:var(--bg2); border:1px solid var(--border); border-radius:10px; padding:16px; margin-top:16px; }
+  .optimizer-result .card-title { display:flex; align-items:center; gap:8px; }
+  .optimizer-result .card-title::before { content:''; width:6px; height:6px; border-radius:50%; background:var(--accent); box-shadow:0 0 8px var(--accent); flex:none; }
+  .redist-table { width:100%; border-collapse:collapse; font-size:12px; }
+  .redist-table th { text-align:left; color:var(--muted); font-weight:500; padding:6px 10px; border-bottom:1px solid var(--border); font-size:10px; text-transform:uppercase; letter-spacing:1px; }
+  .redist-table td { padding:8px 10px; border-bottom:1px solid rgba(99,179,237,0.08); }
+  .redist-table tr:last-child td { border-bottom:none; }
+  .arrow-right { color:var(--accent); }
+  .math-note { background:var(--bg3); border-left:3px solid var(--accent2); padding:10px 14px; border-radius:0 6px 6px 0; font-family:var(--mono); font-size:11px; color:var(--muted); margin-top:12px; line-height:1.7; }
+
+  /* === PAGE 4: SOUND === */
+  .sound-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px; margin-bottom:20px; }
+  .sound-zone { background:var(--bg2); border:1px solid var(--border); border-radius:10px; padding:14px; }
+  .sound-zone-name { font-size:12px; font-weight:600; margin-bottom:8px; }
+  .sound-wave { height:40px; display:flex; align-items:center; justify-content:center; gap:2px; margin-bottom:8px; }
+  .sound-bar { width:4px; border-radius:2px; transition:height .3s; animation:sound-anim 0.8s ease-in-out infinite alternate; }
+  @keyframes sound-anim { from{transform:scaleY(0.3)} to{transform:scaleY(1)} }
+  .freq-display { font-size:11px; color:var(--muted); }
+  .freq-val { font-size:15px; font-weight:700; font-family:var(--mono); }
+  .sound-controls { background:var(--bg2); border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:20px; display:flex; gap:20px; align-items:center; flex-wrap:wrap; }
+  .waveform-canvas { width:100%; height:80px; border-radius:6px; background:var(--bg3); display:block; }
+
+  /* === PAGE 5: DNA ANALYZER === */
+  .dna-layout { display:grid; grid-template-columns:300px 1fr; gap:16px; }
+  .dna-sidebar { display:flex; flex-direction:column; gap:12px; }
+  .dna-district-list { max-height:300px; overflow-y:auto; scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
+  .dna-dist-item { padding:8px 12px; border-radius:6px; cursor:pointer; font-size:12px; border:1px solid transparent; margin-bottom:4px; transition:all .2s; }
+  .dna-dist-item:hover { background:var(--bg3); border-color:var(--border); }
+  .dna-dist-item.active { background:rgba(56,189,248,0.1); border-color:var(--accent); color:var(--accent); }
+  .dna-main { display:flex; flex-direction:column; gap:16px; }
+  .heatmap-wrap { overflow-x:auto; }
+  .heatmap-canvas { display:block; }
+  .similarity-bar { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  .sim-name { font-size:12px; min-width:130px; }
+  .sim-track { flex:1; height:8px; background:var(--bg3); border-radius:4px; overflow:hidden; }
+  .sim-fill { height:100%; border-radius:4px; background:var(--accent2); transition:width .5s; }
+  .sim-val { font-size:12px; font-family:var(--mono); min-width:42px; text-align:right; color:var(--muted); }
+  .inject-btns { display:flex; gap:8px; flex-wrap:wrap; }
+
+  /* === PAGE 6: BLACKOUT SIM === */
+  .blackout-grid { display:grid; grid-template-columns:300px 1fr; gap:16px; }
+  .blackout-log { background:var(--bg3); border-radius:8px; padding:12px; font-family:var(--mono); font-size:11px; line-height:1.8; max-height:400px; overflow-y:auto; border:1px solid var(--border); }
+  .log-line { margin-bottom:2px; }
+  .log-time { color:var(--muted); }
+  .log-event { color:var(--text); }
+  .log-warn { color:var(--warn); }
+  .log-danger { color:var(--danger); }
+  .log-safe { color:var(--safe); }
+  .log-info { color:var(--accent); }
+  .disaster-btns { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
+  .disaster-btn { padding:12px; border-radius:8px; border:1px solid var(--border); background:var(--bg2); cursor:pointer; text-align:center; transition:all .2s; font-size:12px; font-weight:500; }
+  .disaster-btn:hover { border-color:var(--warn); color:var(--warn); }
+  .disaster-btn .icon { font-size:20px; display:block; margin-bottom:4px; }
+  .disaster-btn.cyclone:hover { border-color:#60a5fa; color:#60a5fa; }
+  .disaster-btn.heat:hover { border-color:#f97316; color:#f97316; }
+  .disaster-btn.transformer:hover { border-color:var(--warn); color:var(--warn); }
+  .disaster-btn.shutdown:hover { border-color:var(--danger); color:var(--danger); }
+  .grid-map { width:100%; height:280px; background:var(--bg3); border-radius:10px; border:1px solid var(--border); position:relative; overflow:hidden; }
+  .node { position:absolute; width:12px; height:12px; border-radius:50%; transform:translate(-50%,-50%); transition:all .5s; cursor:pointer; }
+  .node.safe { background:var(--safe); box-shadow:0 0 8px var(--safe); }
+  .node.warn { background:var(--warn); box-shadow:0 0 8px var(--warn); }
+  .node.danger { background:var(--danger); box-shadow:0 0 10px var(--danger); animation:danger-pulse 1.5s infinite; }
+  .node.out { background:#475569; box-shadow:none; animation:none; }
+  .node-label { position:absolute; font-size:9px; white-space:nowrap; transform:translate(-50%,8px); color:var(--muted); pointer-events:none; }
+  .edge { position:absolute; background:rgba(99,179,237,0.2); height:1px; transform-origin:left center; pointer-events:none; transition:background .5s; }
+  .edge.danger { background:rgba(248,113,113,0.6); }
+  .edge.out { background:rgba(71,85,105,0.3); }
+  .impact-panel { background:var(--bg2); border:1px solid var(--border); border-radius:10px; padding:14px; }
+  .impact-row { display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid rgba(99,179,237,0.08); font-size:12px; }
+  .impact-row:last-child { border-bottom:none; }
+
+  /* === PAGE 7: TRANSFORMER FAILURE === */
+  .tf-layout { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .tf-card { background:var(--bg2); border:1px solid var(--border); border-radius:10px; padding:16px; }
+  .rul-gauge { width:120px; height:60px; margin:0 auto 8px; }
+  .prob-bar { height:12px; border-radius:6px; background:var(--bg3); overflow:hidden; margin:8px 0; }
+  .prob-fill { height:100%; border-radius:6px; transition:width 1s; }
+  .tf-inputs { display:flex; flex-direction:column; gap:10px; }
+  .tf-stat-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }
+  .tf-stat { background:var(--bg3); border-radius:6px; padding:8px 10px; }
+  .tf-stat-val { font-size:18px; font-weight:700; }
+  .tf-stat-lbl { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.8px; }
+  .weibull-note { font-size:11px; font-family:var(--mono); color:var(--muted); background:var(--bg3); padding:10px; border-radius:6px; margin-top:12px; line-height:1.6; }
+
+  /* === PAGE 8: FESTIVAL DEMAND === */
+  .festival-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:12px; margin-bottom:20px; }
+  .festival-card { background:var(--bg2); border:1px solid var(--border); border-radius:10px; padding:14px; cursor:pointer; transition:all .2s; }
+  .festival-card:hover, .festival-card.active { border-color:var(--accent2); background:rgba(129,140,248,0.08); }
+  .festival-icon { font-size:24px; margin-bottom:6px; }
+  .festival-name { font-size:12px; font-weight:600; margin-bottom:2px; }
+  .festival-date { font-size:10px; color:var(--muted); }
+  .festival-load { font-size:18px; font-weight:700; margin-top:8px; }
+
+  /* === PAGE 9: CARBON === */
+  .carbon-layout { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .carbon-meter { text-align:center; padding:20px; }
+  .carbon-big { font-size:48px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .carbon-unit { font-size:13px; color:var(--muted); }
+  .source-bar { margin-bottom:10px; }
+  .source-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; font-size:12px; }
+  .source-pct { min-width:36px; text-align:right; font-weight:600; }
+  .source-track { flex:1; height:10px; background:var(--bg3); border-radius:5px; overflow:hidden; }
+  .source-fill { height:100%; border-radius:5px; transition:width 1s; }
+  .carbon-savings { background:rgba(52,211,153,0.08); border:1px solid rgba(52,211,153,0.3); border-radius:10px; padding:16px; margin-top:16px; }
+  .lp-note { font-size:11px; font-family:var(--mono); color:var(--muted); line-height:1.7; background:var(--bg3); padding:12px; border-radius:6px; margin-top:12px; }
+
+  /* === PAGE 10: CRISIS MODE === */
+  .crisis-btn-big { width:100%; padding:20px; background:rgba(248,113,113,0.1); border:2px solid var(--danger); color:var(--danger); border-radius:12px; font-size:16px; font-weight:700; cursor:pointer; transition:all .3s; margin-bottom:20px; letter-spacing:1px; }
+  .crisis-btn-big:hover { background:rgba(248,113,113,0.2); box-shadow:0 0 20px rgba(248,113,113,0.3); }
+  .crisis-layout { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .crisis-phase { background:var(--bg2); border:1px solid var(--border); border-radius:10px; padding:14px; }
+  .phase-step { display:flex; gap:10px; align-items:flex-start; margin-bottom:10px; }
+  .phase-num { width:22px; height:22px; background:rgba(248,113,113,0.2); border:1px solid var(--danger); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; color:var(--danger); flex-shrink:0; }
+  .phase-text { font-size:12px; color:var(--text); padding-top:3px; }
+  .crisis-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:20px; }
+  .crisis-kpi { background:var(--bg2); border:1px solid var(--border); border-radius:8px; padding:12px; text-align:center; }
+  .crisis-kpi .val { font-size:22px; font-weight:700; color:var(--danger); }
+  .crisis-kpi .lbl { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.8px; margin-top:2px; }
+  .route-plan { background:var(--bg3); border-radius:8px; padding:14px; font-family:var(--mono); font-size:11px; line-height:1.9; }
+  .route-step { color:var(--accent); }
+  .route-arrow { color:var(--muted); }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width:6px; height:6px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
+
+  @media (max-width:768px) {
+    .kpi-strip { grid-template-columns:repeat(2,1fr); }
+    .forecast-section { grid-template-columns:1fr; }
+    .zones-grid { grid-template-columns:1fr; }
+    .dna-layout, .blackout-grid, .tf-layout, .carbon-layout, .crisis-layout { grid-template-columns:1fr; }
+    .crisis-scenario-row { grid-template-columns:repeat(2,1fr) !important; }
+    .crisis-stats-4 { grid-template-columns:repeat(2,1fr) !important; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">Grid<span>Pulse</span> TN</div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('hero')">Dashboard</button>
+    <button class="nav-tab" onclick="showPage('zones')">Zone Risk</button>
+    <button class="nav-tab" onclick="showPage('optimizer')">Optimizer</button>
+    <button class="nav-tab" onclick="showPage('sound')">Sound of Grid</button>
+    <button class="nav-tab" onclick="showPage('dna')">DNA Analyzer</button>
+    <button class="nav-tab" onclick="showPage('blackout')">Blackout Sim</button>
+    <button class="nav-tab" onclick="showPage('transformer')">Transformer AI</button>
+    <button class="nav-tab" onclick="showPage('festival')">Festival Demand</button>
+    <button class="nav-tab" onclick="showPage('carbon')">Carbon Optimizer</button>
+    <button class="nav-tab" onclick="showPage('crisis')">Grid Crisis</button>
+    <button class="nav-tab" onclick="showPage('ai')">🤖 AI Chat</button>
+  </div>
+  <div class="live-badge"><div class="live-dot"></div>LIVE · Jun 2026</div>
+</nav>
+
+<!-- ══════════════════════════════════════════════════ PAGE 1: HERO DASHBOARD ══ -->
+<div class="page active" id="page-hero">
+  <div class="hero-header">
+    <div>
+      <div class="hero-title">Tamil Nadu Grid Intelligence Platform</div>
+      <div class="hero-sub">332,880 records · 38 districts · 1-year AI dataset · TANGEDCO real-world data</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <select id="forecastDistrict" onchange="updateForecast()">
+        <option value="all">All Tamil Nadu</option>
+      </select>
+      <button class="btn" onclick="updateForecast()">↺ Refresh</button>
+    </div>
+  </div>
+
+  <div class="kpi-strip">
+    <div class="kpi"><div class="val" style="color:var(--accent)">80.0%</div><div class="lbl">TN Avg Load</div><div class="delta delta-up">↑ 0.2% vs baseline</div></div>
+    <div class="kpi"><div class="val" style="color:var(--warn)">83,171</div><div class="lbl">Overload Events</div><div class="delta delta-up">↑ 24.9% of hours</div></div>
+    <div class="kpi"><div class="val" style="color:var(--danger)">3,277</div><div class="lbl">Outage Events</div><div class="delta delta-up">↑ 1.0% of hours</div></div>
+    <div class="kpi"><div class="val" style="color:var(--safe)">38</div><div class="lbl">Districts Active</div><div class="delta delta-dn">↓ 0 offline</div></div>
+    <div class="kpi"><div class="val" style="color:var(--accent2)">2,401</div><div class="lbl">Avg Load kW</div><div class="delta" style="color:var(--muted)">per transformer</div></div>
+  </div>
+
+  <div class="forecast-section">
+    <div class="card">
+      <div class="card-title">24-Hour Load Forecast (ARIMA-style) with 95% Confidence Interval</div>
+      <div class="scenario-bar" id="scenarioBar">
+        <button class="scenario-btn active" onclick="setScenario('normal',this)">Normal</button>
+        <button class="scenario-btn" onclick="setScenario('heatwave',this)">Heatwave</button>
+        <button class="scenario-btn" onclick="setScenario('cyclone',this)">Cyclone</button>
+        <button class="scenario-btn" onclick="setScenario('festival',this)">Festival</button>
+        <button class="scenario-btn" onclick="setScenario('industrial',this)">Industrial</button>
+      </div>
+      <div class="ci-legend">
+        <span><span class="ci-swatch" style="background:#38bdf8;height:2px;display:inline-block;vertical-align:middle;"></span>Forecast</span>
+        <span><span class="ci-swatch" style="background:rgba(56,189,248,0.25);height:8px;border-radius:2px;display:inline-block;vertical-align:middle;"></span>95% CI</span>
+        <span><span class="ci-swatch" style="background:#fbbf24;"></span>Actual (past)</span>
+      </div>
+      <div class="chart-wrap" style="height:240px;"><canvas id="forecastChart" role="img" aria-label="24 hour load forecast chart">24-hour Tamil Nadu grid load forecast with confidence intervals.</canvas></div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="card">
+        <div class="card-title">Scenario Parameters</div>
+        <div class="tf-inputs">
+          <div class="slider-row"><span class="slider-label">Temp (°C)</span><input type="range" min="20" max="45" value="32" id="slTemp" oninput="updateForecast();document.getElementById('valTemp').textContent=this.value+'°'"><span class="slider-val" id="valTemp">32°</span></div>
+          <div class="slider-row"><span class="slider-label">EV Load</span><input type="range" min="0" max="100" value="30" id="slEV" oninput="updateForecast();document.getElementById('valEV').textContent=this.value+'%'"><span class="slider-val" id="valEV">30%</span></div>
+          <div class="slider-row"><span class="slider-label">Industrial</span><input type="range" min="0" max="100" value="70" id="slInd" oninput="updateForecast();document.getElementById('valInd').textContent=this.value+'%'"><span class="slider-val" id="valInd">70%</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">EV Impact</div>
+        <div class="chart-wrap" style="height:110px;"><canvas id="evChart" role="img" aria-label="EV impact mini chart">EV demand contribution chart.</canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Monthly Load Trend · All TN (2025)</div>
+      <div class="chart-wrap" style="height:180px;"><canvas id="monthlyChart" role="img" aria-label="Monthly average load">Monthly average grid load for Tamil Nadu 2025.</canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Weekly Load Distribution (52 weeks)</div>
+      <div class="chart-wrap" style="height:180px;"><canvas id="weeklyChart" role="img" aria-label="Weekly load distribution">Weekly load distribution chart.</canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════ PAGE 2: ZONE RISK ══ -->
+<div class="page" id="page-zones">
+  <div style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+    <div>
+      <div class="hero-title" style="font-size:18px;margin-bottom:4px;">Zone Risk Dashboard</div>
+      <div style="font-size:12px;color:var(--muted)">Live risk status · 38 districts · Glow = severity · Click any zone for 6h trajectory + risk tone</div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+      <button class="sound-toggle-btn" id="zoneSoundBtn" onclick="toggleGlobalSound()">🔊 Sound On</button>
+      <div class="risk-legend-mini">
+        <span><span class="dot" style="background:var(--safe)"></span>Safe · base tone</span>
+        <span><span class="dot" style="background:var(--warn)"></span>Warning · warm tone</span>
+        <span><span class="dot" style="background:var(--danger)"></span>Danger · high alert</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="zones-grid" id="zonesGrid"></div>
+
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-title">6-Hour Load Trajectory — Selected Zone</div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+      <span style="font-size:13px;font-weight:600;" id="trajectoryLabel">Select a zone above</span>
+      <span class="badge" id="trajectoryBadge"></span>
+    </div>
+    <div class="chart-wrap" style="height:200px;"><canvas id="trajectoryChart" role="img" aria-label="Zone trajectory">Zone load trajectory chart.</canvas></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">All 38 Districts — Load Status</div>
+    <div class="district-search">
+      <input type="text" placeholder="Search district…" oninput="filterDistricts(this.value)">
+      <button class="btn" onclick="filterDistricts('')">All</button>
+      <button class="btn" onclick="filterStatus('safe')">Safe</button>
+      <button class="btn btn-warn" onclick="filterStatus('warn')">Warning</button>
+      <button class="btn btn-danger" onclick="filterStatus('danger')">Danger</button>
+    </div>
+    <div class="all-districts-grid" id="allDistrictsGrid"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════ PAGE 3: OPTIMIZER ══ -->
+<div class="page" id="page-optimizer">
+  <div style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+    <div>
+      <div class="hero-title" style="font-size:18px;margin-bottom:4px;">Load Redistribution Optimizer</div>
+      <div style="font-size:12px;color:var(--muted)">Minimizes Σ(load − capacity)² using quadratic programming · Identifies overloaded zones · Plans optimal redistribution</div>
+    </div>
+    <button class="sound-toggle-btn" id="optSoundBtn" onclick="toggleGlobalSound()">🔊 Sound On</button>
+  </div>
+
+  <div class="optimizer-controls">
+    <div class="card-title">Optimizer Configuration</div>
+    <div class="grid-3">
+      <div>
+        <label>Max transfer per link (%)</label><br>
+        <input type="range" min="5" max="30" value="15" id="optMaxTransfer" oninput="document.getElementById('optMaxTransferVal').textContent=this.value+'%';runOptimizer()">
+        <span id="optMaxTransferVal" style="font-size:12px;font-weight:600;">15%</span>
+      </div>
+      <div>
+        <label>Overload threshold (%)</label><br>
+        <input type="range" min="80" max="100" value="90" id="optThreshold" oninput="document.getElementById('optThresholdVal').textContent=this.value+'%';runOptimizer()">
+        <span id="optThresholdVal" style="font-size:12px;font-weight:600;">90%</span>
+      </div>
+      <div>
+        <label>Optimization target</label><br>
+        <select id="optTarget" onchange="runOptimizer()" style="margin-top:4px;width:100%;">
+          <option value="min_sq">Minimize Σ(load−cap)²</option>
+          <option value="min_max">Minimize max overload</option>
+          <option value="balance">Balance all zones</option>
+        </select>
+      </div>
+    </div>
+    <div class="optimizer-run-row">
+      <span class="optimizer-run-hint">Recalculates automatically as you adjust the sliders above — use this to re-run on demand.</span>
+      <button class="btn" onclick="runOptimizer()">▶ Run Redistribution Plan</button>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Before Optimization — Top 15 Districts by Load%</div>
+      <div class="chart-wrap" style="height:340px;"><canvas id="beforeChart" role="img" aria-label="Before optimization">Load before optimization.</canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">After Optimization — Redistributed Load</div>
+      <div class="chart-wrap" style="height:340px;"><canvas id="afterChart" role="img" aria-label="After optimization">Load after optimization.</canvas></div>
+    </div>
+  </div>
+
+  <div class="optimizer-result" id="optResult">
+    <div class="card-title">Redistribution Plan</div>
+    <table class="redist-table" id="redistTable">
+      <thead><tr><th>From District</th><th>Load Before</th><th></th><th>Load After</th><th>Transfer To</th><th>Amount</th></tr></thead>
+      <tbody id="redistBody"></tbody>
+    </table>
+    <div class="math-note" id="mathNote"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════ PAGE 4: SOUND OF GRID ══ -->
+<div class="page" id="page-sound">
+  <div style="margin-bottom:16px;">
+    <div class="hero-title" style="font-size:18px;margin-bottom:4px;">Sound of the Grid</div>
+    <div style="font-size:12px;color:var(--muted)">Web Audio API · Safe zones = consonant sine waves (C major) · Danger zones = dissonant sawtooth (diminished) · Real data-driven frequencies</div>
+  </div>
+
+  <div class="sound-controls">
+    <button class="btn" id="listenBtn" onclick="toggleSound()">▶ Listen to Grid</button>
+    <div style="flex:1;">
+      <label>Master Volume</label>
+      <input type="range" min="0" max="100" value="40" id="masterVol" oninput="setMasterVolume(this.value)">
+    </div>
+    <div style="flex:1;">
+      <label>Load Slider (affects all frequencies)</label>
+      <input type="range" min="40" max="120" value="80" id="loadSlider" oninput="updateSoundLoad(this.value);document.getElementById('loadSliderVal').textContent=this.value+'%'">
+      <span id="loadSliderVal" style="font-size:12px;font-weight:600;margin-left:6px;">80%</span>
+    </div>
+    <div style="flex:1;">
+      <label>Waveform</label>
+      <select id="waveType" onchange="updateWaveType(this.value)">
+        <option value="auto">Auto (by risk)</option>
+        <option value="sine">All Sine</option>
+        <option value="sawtooth">All Sawtooth</option>
+        <option value="square">All Square</option>
+      </select>
+    </div>
+  </div>
+
+  <canvas class="waveform-canvas" id="waveformCanvas" height="80"></canvas>
+
+  <div style="margin:16px 0 8px;" class="section-title">District Zones (click to solo)</div>
+  <div class="sound-grid" id="soundGrid"></div>
+
+  <div class="card" style="margin-top:16px;">
+    <div class="card-title">Musical Theory Behind the Grid</div>
+    <div style="font-size:12px;color:var(--muted);line-height:1.8;">
+      <strong style="color:var(--text);">Safe zones (load &lt; 75%)</strong> — Consonant sine waves tuned to C major intervals (C4=262Hz, E4=330Hz, G4=392Hz). Mathematically, consonance arises from simple frequency ratios (3:2, 5:4).<br>
+      <strong style="color:var(--text);">Warning zones (75–85%)</strong> — Slightly detuned oscillators with minor intervals (dissonance ratio ≈ 9:8, 16:15).<br>
+      <strong style="color:var(--text);">Danger zones (&gt; 85%)</strong> — Sawtooth waves (rich in harmonics) tuned to diminished chords. Load % maps linearly to frequency: f = 200 + (load − 40) × 4 Hz.
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════ PAGE 5: DNA ANALYZER ══ -->
+<div class="page" id="page-dna">
+  <div style="margin-bottom:16px;">
+    <div class="hero-title" style="font-size:18px;margin-bottom:4px;">Zone DNA Analyzer</div>
+    <div style="font-size:12px;color:var(--muted)">Per-zone 24h load curve · FFT spectral fingerprint · 12-month heatmap · Cosine similarity matching · Anomaly / theft injection</div>
+  </div>
+
+  <div class="dna-layout">
+    <div class="dna-sidebar">
+      <div class="card" style="padding:12px;">
+        <div class="card-title">Select District</div>
+        <div class="dna-district-list" id="dnaDistrictList"></div>
+      </div>
+      <div class="card" style="padding:12px;">
+        <div class="card-title">Similar Districts</div>
+        <div id="similarityList"></div>
+      </div>
+      <div class="card" style="padding:12px;">
+        <div class="card-title">Inject Event</div>
+        <div class="inject-btns">
+          <button class="btn btn-danger" onclick="injectAnomaly()">⚡ Anomaly Spike</button>
+          <button class="btn btn-warn" onclick="injectTheft()">🔌 Theft Pattern</button>
+          <button class="btn" onclick="clearInjection()">↺ Reset</button>
+        </div>
+        <div id="injectStatus" style="margin-top:10px;font-size:11px;color:var(--muted);"></div>
+      </div>
+    </div>
+
+    <div class="dna-main">
+      <div class="card">
+        <div class="card-title">24-Hour Load Curve — <span id="dnaDistrictLabel">Chennai</span></div>
+        <div class="chart-wrap" style="height:180px;"><canvas id="dnaLoadChart" role="img" aria-label="24h load curve">24-hour zone load curve.</canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">FFT Spectral Fingerprint — Dominant Frequency Components</div>
+        <div class="chart-wrap" style="height:150px;"><canvas id="fftChart" role="img" aria-label="FFT spectral fingerprint">FFT spectral analysis chart.</canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">12-Month Load Heatmap (Monthly avg %)</div>
+        <canvas class="heatmap-canvas" id="heatmapCanvas" height="120"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════ PAGE 6: BLACKOUT SIM ══ -->
+<div class="page" id="page-blackout">
+  <div style="margin-bottom:16px;">
+    <div class="hero-title" style="font-size:18px;margin-bottom:4px;">Blackout Simulator</div>
+    <div style="font-size:12px;color:var(--muted)">Graph theory network flow · Max-flow/min-cut rerouting · Cascade failure simulation · Dijkstra shortest-path recovery</div>
+  </div>
+
+  <div class="blackout-grid">
+    <div>
+      <div class="section-title" style="margin-bottom:10px;">Trigger Disaster</div>
+      <div class="disaster-btns">
+        <button class="disaster-btn cyclone" onclick="triggerDisaster('cyclone')"><span class="icon">🌀</span>Cyclone<br><small style="color:var(--muted);font-size:10px;">Cuddalore / Nagapattinam</small></button>
+        <button class="disaster-btn heat" onclick="triggerDisaster('heatwave')"><span class="icon">🔥</span>Heatwave<br><small style="color:var(--muted);font-size:10px;">+8°C · All districts</small></button>
+        <button class="disaster-btn transformer" onclick="triggerDisaster('transformer')"><span class="icon">⚡</span>Transformer<br><small style="color:var(--muted);font-size:10px;">L32 failure · Erode</small></button>
+        <button class="disaster-btn shutdown" onclick="triggerDisaster('shutdown')"><span class="icon">🏭</span>Power Plant<br><small style="color:var(--muted);font-size:10px;">-800MW · North grid</small></button>
+      </div>
+
+      <div class="card" style="margin-bottom:12px;">
+        <div class="card-title">Impact Assessment</div>
+        <div class="impact-panel" id="impactPanel">
+          <div class="impact-row"><span>Status</span><span style="color:var(--safe);font-weight:600;">Grid Stable</span></div>
+          <div class="impact-row"><span>Districts affected</span><span id="impAffected">0</span></div>
+          <div class="impact-row"><span>Population at risk</span><span id="impPop">0</span></div>
+          <div class="impact-row"><span>Load shed (MW)</span><span id="impShed">0</span></div>
+          <div class="impact-row"><span>Recovery ETA</span><span id="impETA">—</span></div>
+        </div>
+      </div>
+
+      <div class="blackout-log" id="blackoutLog">
+        <div class="log-line"><span class="log-time">[00:00]</span> <span class="log-safe">Grid operational. All 38 districts ONLINE.</span></div>
+        <div class="log-line"><span class="log-time">[00:00]</span> <span class="log-info">Select a disaster scenario to simulate cascade failure.</span></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card" style="margin-bottom:12px;">
+        <div class="card-title">Tamil Nadu Grid Network — Live Status</div>
+        <div class="grid-map" id="gridMap"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">AI Recovery Route</div>
+        <div class="route-plan" id="routePlan">
+          <div style="color:var(--muted)">Trigger a disaster to see AI-generated recovery routing using Dijkstra's algorithm...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════ PAGE 7: TRANSFORMER FAILURE ══ -->
+<div class="page" id="page-transformer">
+  <div style="margin-bottom:16px;">
+    <div class="hero-title" style="font-size:18px;margin-bottom:4px;">Transformer Failure Prediction</div>
+    <div style="font-size:12px;color:var(--muted)">Weibull survival analysis · Bayesian failure probability · Regression on temp + age + overloads · RUL estimation</div>
+  </div>
+
+  <div class="tf-layout">
+    <div>
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-title">Transformer Parameters</div>
+        <div class="tf-inputs">
+          <div class="slider-row"><span class="slider-label">Age (years)</span><input type="range" min="1" max="30" value="12" id="tfAge" oninput="updateTFPred()"><span class="slider-val" id="tfAgeVal">12</span></div>
+          <div class="slider-row"><span class="slider-label">Temperature °C</span><input type="range" min="35" max="90" value="65" id="tfTemp" oninput="updateTFPred()"><span class="slider-val" id="tfTempVal">65°C</span></div>
+          <div class="slider-row"><span class="slider-label">Overload count</span><input type="range" min="0" max="50" value="8" id="tfOverload" oninput="updateTFPred()"><span class="slider-val" id="tfOverloadVal">8</span></div>
+          <div class="slider-row"><span class="slider-label">Fault history</span><input type="range" min="0" max="20" value="3" id="tfFaults" oninput="updateTFPred()"><span class="slider-val" id="tfFaultsVal">3</span></div>
+        </div>
+        <div class="tf-stat-grid">
+          <div class="tf-stat"><div class="tf-stat-val" id="tfRUL" style="color:var(--warn)">142</div><div class="tf-stat-lbl">RUL (days)</div></div>
+          <div class="tf-stat"><div class="tf-stat-val" id="tfProb" style="color:var(--danger)">78%</div><div class="tf-stat-lbl">Fail Probability</div></div>
+          <div class="tf-stat"><div class="tf-stat-val" id="tfRisk" style="color:var(--warn)">High</div><div class="tf-stat-lbl">Risk Level</div></div>
+          <div class="tf-stat"><div class="tf-stat-val" id="tfAction" style="color:var(--accent);font-size:12px;">Inspect</div><div class="tf-stat-lbl">Recommended</div></div>
+        </div>
+        <div class="prob-bar" style="margin-top:12px;height:16px;">
+          <div class="prob-fill" id="tfProbFill" style="background:linear-gradient(90deg,var(--safe),var(--warn),var(--danger));width:78%;"></div>
+        </div>
+        <div class="weibull-note">
+          Weibull RUL: R(t) = e^(-(t/η)^β)<br>
+          η = 200 − (age×4) − (overloads×2)<br>
+          β = 1.5 + (temp−50)/40<br>
+          P(fail) = 1 − R(η×0.7) × (1 − faults/20)
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">High-Risk Transformers from Dataset</div>
+        <div id="tfHighRisk"></div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div class="card">
+        <div class="card-title">Failure Probability vs Age</div>
+        <div class="chart-wrap" style="height:200px;"><canvas id="tfAgeChart" role="img" aria-label="Failure probability vs age">Transformer failure probability curve.</canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Temperature × Overload Risk Matrix</div>
+        <div class="chart-wrap" style="height:200px;"><canvas id="tfMatrixChart" role="img" aria-label="Risk matrix">Temperature vs overload risk matrix.</canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">RUL Distribution — All Dataset Transformers</div>
+        <div class="chart-wrap" style="height:150px;"><canvas id="tfRULChart" role="img" aria-label="RUL distribution">RUL distribution chart.</canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════ PAGE 8: FESTIVAL DEMAND ══ -->
+<div class="page" id="page-festival">
+  <div style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+    <div>
+      <div class="hero-title" style="font-size:18px;margin-bottom:4px;">Festival Demand Predictor — Tamil Nadu</div>
+      <div style="font-size:12px;color:var(--muted)">SARIMA + Fourier analysis · Regression with event dummy variables · Clustering of demand patterns</div>
+    </div>
+    <button class="sound-toggle-btn" id="festSoundBtn" onclick="toggleGlobalSound()">🔊 Sound On</button>
+  </div>
+
+  <div class="festival-grid" id="festivalGrid"></div>
+
+  <div class="card" style="margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+    <div style="flex:1;min-width:220px;">
+      <div class="card-title" style="margin-bottom:6px;">Statewide Demand Surge Simulation</div>
+      <div style="font-size:11px;color:var(--muted)">Projects the selected festival's boost onto all 38 districts and flags zones crossing into warning/danger bands.</div>
+    </div>
+    <button class="btn btn-warn" onclick="activateFestivalSurge()">⚡ Activate Surge</button>
+    <div id="festSurgeSummary" style="font-size:12px;color:var(--muted);min-width:160px;"></div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Predicted Load Profile — <span id="festivalLabel">Select event</span></div>
+      <div class="chart-wrap" style="height:220px;"><canvas id="festivalChart" role="img" aria-label="Festival demand profile">Festival demand prediction chart.</canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">SARIMA Forecast Decomposition</div>
+      <div class="chart-wrap" style="height:220px;"><canvas id="sarimaChart" role="img" aria-label="SARIMA decomposition">SARIMA component decomposition.</canvas></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px;">
+    <div class="card-title">Demand Clustering — Districts by Event Response Pattern</div>
+    <div class="chart-wrap" style="height:200px;"><canvas id="clusterChart" role="img" aria-label="Demand clustering">District demand clustering.</canvas></div>
+  </div>
+
+  <div class="card" style="margin-top:16px;">
+    <div class="card-title">District Risk Under Surge (click a chip to hear its tone)</div>
+    <div class="all-districts-grid" id="festDistrictGrid" style="margin-top:10px;"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════ PAGE 9: CARBON ══ -->
+<div class="page" id="page-carbon">
+  <div style="margin-bottom:16px;">
+    <div class="hero-title" style="font-size:18px;margin-bottom:4px;">Carbon Impact Optimizer</div>
+    <div style="font-size:12px;color:var(--muted)">Linear programming · Minimize carbon emissions subject to supply-demand constraints · Sensitivity analysis</div>
+  </div>
+
+  <div class="carbon-layout">
+    <div>
+      <div class="card carbon-meter">
+        <div class="card-title">Current Grid Carbon</div>
+        <div class="carbon-big" id="carbonVal" style="color:var(--danger)">820</div>
+        <div class="carbon-unit">tons CO₂/hour</div>
+        <div style="margin-top:12px;font-size:11px;color:var(--muted);">Based on 2,401 kW avg × 38 districts × current mix</div>
+      </div>
+      <div class="card" style="margin-top:16px;">
+        <div class="card-title">Optimize Generation Mix</div>
+        <div class="tf-inputs" style="gap:12px;">
+          <div class="slider-row"><span class="slider-label">Coal (%)</span><input type="range" min="0" max="100" value="65" id="slCoal" oninput="updateCarbon()"><span class="slider-val" id="valCoal">65%</span></div>
+          <div class="slider-row"><span class="slider-label">Wind (%)</span><input type="range" min="0" max="100" value="20" id="slWind" oninput="updateCarbon()"><span class="slider-val" id="valWind">20%</span></div>
+          <div class="slider-row"><span class="slider-label">Solar (%)</span><input type="range" min="0" max="100" value="10" id="slSolar" oninput="updateCarbon()"><span class="slider-val" id="valSolar">10%</span></div>
+          <div class="slider-row"><span class="slider-label">Nuclear (%)</span><input type="range" min="0" max="50" value="5" id="slNuclear" oninput="updateCarbon()"><span class="slider-val" id="valNuclear">5%</span></div>
+        </div>
+        <div id="mixWarning" style="color:var(--warn);font-size:11px;margin-top:8px;"></div>
+        <button class="btn" style="margin-top:12px;width:100%;" onclick="runLPOptimizer()">▶ Run LP Optimizer</button>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div class="card">
+        <div class="card-title">Emission Factors (gCO₂/kWh)</div>
+        <div class="source-bar" id="sourceBar"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Carbon Before vs After Optimization</div>
+        <div class="chart-wrap" style="height:200px;"><canvas id="carbonChart" role="img" aria-label="Carbon comparison">Carbon emissions comparison.</canvas></div>
+      </div>
+      <div class="carbon-savings" id="carbonSavings">
+        <div class="card-title" style="color:var(--safe);">AI Recommendation</div>
+        <div id="carbonAdvice" style="font-size:12px;line-height:1.8;"></div>
+        <div class="lp-note" id="lpNote"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════ PAGE 10: CRISIS ══ -->
+<div class="page" id="page-crisis">
+  <div style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+    <div>
+      <div class="hero-title" style="font-size:18px;margin-bottom:4px;">Grid Crisis Mode</div>
+      <div style="font-size:12px;color:var(--muted)">Stochastic outage prediction · Population impact · Dijkstra shortest path · Emergency recovery plan · Audio siren scales with severity</div>
+    </div>
+    <button class="sound-toggle-btn" id="crisisSoundBtn" onclick="toggleGlobalSound()">🔊 Sound On</button>
+  </div>
+
+  <div class="crisis-scenario-row" style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px;">
+    <button onclick="activateCrisis('cyclone')" class="crisis-btn-big" style="font-size:13px;padding:14px;margin-bottom:0;">🌀 Cyclone<br><small style="font-size:10px;font-weight:400;opacity:0.8">Cuddalore coast</small></button>
+    <button onclick="activateCrisis('heatwave')" class="crisis-btn-big" style="font-size:13px;padding:14px;margin-bottom:0;border-color:var(--warn);color:var(--warn);background:rgba(251,191,36,0.08);">🔥 Heatwave<br><small style="font-size:10px;font-weight:400;opacity:0.8">45°C statewide</small></button>
+    <button onclick="activateCrisis('tsunami')" class="crisis-btn-big" style="font-size:13px;padding:14px;margin-bottom:0;border-color:#60a5fa;color:#60a5fa;background:rgba(96,165,250,0.08);">🌊 Tsunami<br><small style="font-size:10px;font-weight:400;opacity:0.8">Coastal offline</small></button>
+    <button onclick="activateCrisis('cascade')" class="crisis-btn-big" style="font-size:13px;padding:14px;margin-bottom:0;border-color:var(--accent2);color:var(--accent2);background:rgba(129,140,248,0.08);">⚡ Cascade<br><small style="font-size:10px;font-weight:400;opacity:0.8">Multi-transformer</small></button>
+    <button onclick="activateCrisis('collapse')" class="crisis-btn-big" style="font-size:13px;padding:14px;margin-bottom:0;border-color:#dc2626;color:#dc2626;background:rgba(220,38,38,0.12);">☢ Grid Collapse<br><small style="font-size:10px;font-weight:400;opacity:0.8">Statewide blackout</small></button>
+  </div>
+  <button class="btn" onclick="resetCrisis()" style="width:100%;margin-bottom:16px;">↺ Reset Grid</button>
+
+  <div class="crisis-stats crisis-stats-4" style="grid-template-columns:repeat(4,1fr);">
+    <div class="crisis-kpi"><div class="val" id="crisisAffected">0</div><div class="lbl">Districts Affected</div></div>
+    <div class="crisis-kpi"><div class="val" id="crisisPopulation">0M</div><div class="lbl">People at Risk</div></div>
+    <div class="crisis-kpi"><div class="val" id="crisisLoad">0 MW</div><div class="lbl">Load Shed</div></div>
+    <div class="crisis-kpi"><div class="val" id="crisisSeverity" style="color:var(--safe)">IDLE</div><div class="lbl">Severity Level</div></div>
+  </div>
+
+  <div class="crisis-layout">
+    <div>
+      <div class="crisis-phase">
+        <div class="card-title" style="margin-bottom:12px;">Crisis Timeline</div>
+        <div id="crisisTimeline"></div>
+      </div>
+      <div class="card" style="margin-top:16px;">
+        <div class="card-title">District Impact Ranking</div>
+        <div class="chart-wrap" style="height:260px;"><canvas id="crisisImpactChart" role="img" aria-label="Crisis impact">Crisis district impact chart.</canvas></div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-title">AI-Generated Recovery Plan</div>
+        <div class="route-plan" id="crisisRoute" style="min-height:200px;">
+          <div style="color:var(--muted)">Activate crisis mode to generate the Dijkstra-based recovery routing plan...</div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:16px;">
+        <div class="card-title">Load Cascade Simulation</div>
+        <div class="chart-wrap" style="height:200px;"><canvas id="crisisCascadeChart" role="img" aria-label="Cascade simulation">Crisis cascade load chart.</canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════ REAL DATASET (1-year, 332,880 rows) ═══════════════════════
+const DISTRICTS = ["Ariyalur","Chengalpattu","Chennai","Coimbatore","Cuddalore","Dharmapuri","Dindigul","Erode","Kallakurichi","Kancheepuram","Kanniyakumari","Karur","Krishnagiri","Madurai","Mayiladuthurai","Nagapattinam","Namakkal","Nilgiris","Perambalur","Pudukkottai","Ramanathapuram","Ranipet","Salem","Sivagangai","Tenkasi","Thanjavur","Theni","Thoothukudi","Tiruchirappalli","Tirunelveli","Tirupattur","Tiruppur","Tiruvallur","Tiruvannamalai","Tiruvarur","Vellore","Villupuram","Virudhunagar"];
+
+const DIST_DATA = {
+  "Ariyalur":{avg:79.7,max:120,overloads:2133,outages:86,temp:59.6,weather:32.1,kw:2401,consumers:5237},
+  "Chengalpattu":{avg:80.3,max:120,overloads:2188,outages:109,temp:60.0,weather:32.0,kw:2404,consumers:5271},
+  "Chennai":{avg:79.7,max:120,overloads:2090,outages:83,temp:60.3,weather:32.0,kw:2377,consumers:5218},
+  "Coimbatore":{avg:80.4,max:120,overloads:2196,outages:75,temp:60.2,weather:32.1,kw:2397,consumers:5227},
+  "Cuddalore":{avg:80.1,max:120,overloads:2236,outages:74,temp:60.0,weather:32.0,kw:2396,consumers:5191},
+  "Dharmapuri":{avg:80.0,max:120,overloads:2200,outages:86,temp:59.7,weather:32.0,kw:2384,consumers:5271},
+  "Dindigul":{avg:80.0,max:120,overloads:2152,outages:107,temp:59.9,weather:32.0,kw:2394,consumers:5308},
+  "Erode":{avg:80.5,max:120,overloads:2249,outages:83,temp:60.2,weather:31.9,kw:2414,consumers:5240},
+  "Kallakurichi":{avg:80.4,max:120,overloads:2206,outages:77,temp:60.1,weather:32.0,kw:2404,consumers:5216},
+  "Kancheepuram":{avg:79.9,max:120,overloads:2223,outages:78,temp:59.9,weather:32.0,kw:2385,consumers:5210},
+  "Kanniyakumari":{avg:80.1,max:120,overloads:2149,outages:72,temp:60.3,weather:32.1,kw:2394,consumers:5207},
+  "Karur":{avg:79.9,max:120,overloads:2189,outages:87,temp:59.8,weather:32.0,kw:2402,consumers:5218},
+  "Krishnagiri":{avg:80.3,max:120,overloads:2221,outages:97,temp:59.9,weather:31.9,kw:2399,consumers:5268},
+  "Madurai":{avg:80.1,max:120,overloads:2229,outages:83,temp:59.9,weather:32.1,kw:2401,consumers:5262},
+  "Mayiladuthurai":{avg:79.9,max:120,overloads:2177,outages:86,temp:60.0,weather:32.0,kw:2405,consumers:5253},
+  "Nagapattinam":{avg:79.9,max:120,overloads:2198,outages:85,temp:59.7,weather:32.0,kw:2405,consumers:5258},
+  "Namakkal":{avg:80.4,max:120,overloads:2255,outages:84,temp:60.2,weather:32.1,kw:2404,consumers:5250},
+  "Nilgiris":{avg:80.1,max:120,overloads:2200,outages:57,temp:60.1,weather:31.9,kw:2403,consumers:5287},
+  "Perambalur":{avg:80.4,max:120,overloads:2227,outages:100,temp:60.1,weather:31.9,kw:2416,consumers:5224},
+  "Pudukkottai":{avg:79.3,max:120,overloads:2159,outages:90,temp:59.8,weather:32.0,kw:2377,consumers:5249},
+  "Ramanathapuram":{avg:80.3,max:120,overloads:2242,outages:97,temp:60.0,weather:32.0,kw:2399,consumers:5256},
+  "Ranipet":{avg:79.8,max:120,overloads:2208,outages:76,temp:59.9,weather:32.0,kw:2382,consumers:5290},
+  "Salem":{avg:80.0,max:120,overloads:2187,outages:94,temp:60.0,weather:32.0,kw:2406,consumers:5261},
+  "Sivagangai":{avg:80.2,max:120,overloads:2255,outages:84,temp:60.1,weather:32.0,kw:2398,consumers:5271},
+  "Tenkasi":{avg:79.7,max:120,overloads:2149,outages:76,temp:59.9,weather:32.0,kw:2388,consumers:5265},
+  "Thanjavur":{avg:79.8,max:120,overloads:2216,outages:84,temp:60.1,weather:32.0,kw:2403,consumers:5198},
+  "Theni":{avg:80.3,max:120,overloads:2276,outages:88,temp:60.0,weather:32.1,kw:2385,consumers:5188},
+  "Thoothukudi":{avg:80.1,max:120,overloads:2201,outages:80,temp:59.8,weather:32.0,kw:2405,consumers:5262},
+  "Tiruchirappalli":{avg:79.9,max:120,overloads:2147,outages:85,temp:60.2,weather:32.0,kw:2377,consumers:5273},
+  "Tirunelveli":{avg:80.2,max:120,overloads:2228,outages:75,temp:59.8,weather:32.0,kw:2409,consumers:5240},
+  "Tirupattur":{avg:80.0,max:120,overloads:2166,outages:93,temp:60.1,weather:32.0,kw:2384,consumers:5234},
+  "Tiruppur":{avg:79.3,max:120,overloads:2081,outages:83,temp:59.9,weather:32.0,kw:2383,consumers:5264},
+  "Tiruvallur":{avg:80.2,max:120,overloads:2245,outages:104,temp:60.1,weather:32.0,kw:2407,consumers:5258},
+  "Tiruvannamalai":{avg:79.7,max:120,overloads:2148,outages:89,temp:59.9,weather:32.1,kw:2369,consumers:5278},
+  "Tiruvarur":{avg:79.7,max:120,overloads:2147,outages:95,temp:59.8,weather:32.0,kw:2397,consumers:5272},
+  "Vellore":{avg:79.7,max:120,overloads:2139,outages:101,temp:59.5,weather:32.0,kw:2386,consumers:5301},
+  "Villupuram":{avg:79.6,max:120,overloads:2085,outages:82,temp:59.6,weather:32.1,kw:2399,consumers:5264},
+  "Virudhunagar":{avg:79.9,max:120,overloads:2174,outages:92,temp:60.0,weather:31.9,kw:2385,consumers:5248}
+};
+
+const HOURLY = {"Chennai":[81.2,78.7,80.2,78.6,78.3,80.3,76.5,79.4,79.6,78.5,79.9,80.2,79.6,79.5,80.7,81.4,79.4,80.2,80.5,81.3,78.9,78.9,80.2,80.9],"Chengalpattu":[80.0,80.3,79.8,82.1,79.5,79.0,80.7,82.3,79.5,80.6,79.8,80.1,80.3,80.3,79.5,80.5,80.9,81.0,81.2,81.0,79.2,80.0,78.8,80.5],"Kancheepuram":[79.7,80.4,81.3,79.9,77.8,79.1,80.0,80.9,79.3,78.7,78.4,80.6,79.7,79.9,80.3,79.8,81.1,82.0,80.5,79.1,79.4,79.6,79.1,81.2],"Tiruvallur":[80.9,84.6,81.6,80.4,82.1,81.5,80.2,79.1,81.8,80.3,79.3,77.9,81.0,80.0,78.5,81.0,79.1,82.4,79.0,79.7,78.3,79.1,79.5,78.3],"Vellore":[78.9,78.2,78.6,81.0,79.5,78.6,83.1,78.9,78.6,80.0,80.9,78.8,80.0,79.9,79.8,80.1,78.5,81.2,79.7,80.1,79.8,79.1,79.9,79.0],"Ranipet":[81.0,80.2,80.9,80.2,80.0,78.5,79.9,79.8,80.9,81.1,80.1,79.0,82.4,81.3,78.3,80.5,79.6,78.8,78.4,81.2,78.3,78.7,79.1,77.6],"Tirupattur":[80.5,79.4,81.5,77.2,78.0,79.7,81.5,81.1,79.1,80.2,80.4,81.1,80.9,79.9,81.0,81.0,79.3,77.2,80.4,81.7,80.3,78.6,79.8,80.7],"Tiruvannamalai":[79.0,79.7,81.6,79.3,76.6,78.4,79.5,79.4,80.4,79.2,79.8,78.0,82.0,79.7,79.5,81.9,78.8,80.9,82.4,79.9,78.5,80.3,80.2,77.2],"Villupuram":[80.2,79.7,79.0,80.1,79.7,80.0,80.3,75.6,78.4,82.2,77.8,78.4,79.5,78.2,80.1,81.5,79.9,79.8,79.4,80.6,79.8,80.1,82.5,78.0],"Kallakurichi":[81.2,78.7,80.2,80.9,80.2,79.8,79.9,81.1,78.0,80.0,79.9,80.9,82.7,82.9,81.1,78.8,78.9,78.2,79.9,80.1,81.6,81.5,81.4,82.2],"Cuddalore":[81.8,79.8,78.7,78.5,78.8,79.4,79.8,77.5,82.0,80.6,78.6,80.3,81.0,81.9,80.6,81.2,81.2,80.5,80.2,81.0,80.2,80.6,78.8,78.7],"Salem":[80.0,80.1,78.9,80.2,80.4,79.8,78.5,80.7,79.4,80.6,79.7,78.8,80.2,80.7,82.1,80.3,78.0,79.8,78.8,81.7,79.8,82.0,79.8,79.9],"Namakkal":[79.0,81.3,79.3,79.4,78.7,81.1,80.4,76.7,81.2,80.7,81.3,79.8,79.6,81.6,81.2,81.3,81.2,80.3,81.2,81.1,81.6,80.6,78.8,81.6],"Dharmapuri":[82.7,81.2,79.8,78.6,77.1,79.4,81.6,81.3,78.4,81.1,80.7,77.5,80.1,78.7,80.9,78.8,78.4,80.5,79.6,81.8,82.9,80.3,80.9,77.5],"Krishnagiri":[79.3,79.3,80.5,79.7,81.7,82.1,80.1,80.1,80.6,80.5,79.8,82.4,80.8,79.1,80.6,81.5,79.1,81.4,78.4,79.7,80.2,78.9,80.8,79.3],"Erode":[80.6,81.0,81.8,80.7,78.8,80.2,80.6,81.6,79.8,81.5,80.7,79.7,83.6,79.8,79.4,81.6,79.8,80.6,80.9,79.4,79.0,80.2,77.6,82.4],"Tiruppur":[79.5,78.2,80.7,79.9,79.4,78.5,79.3,81.4,78.2,79.1,79.5,76.6,80.9,81.0,80.2,78.4,79.7,79.6,80.8,78.2,77.1,79.2,79.5,78.6],"Coimbatore":[79.3,81.9,78.6,77.6,81.2,80.8,79.9,80.2,80.7,80.6,81.0,79.7,82.4,81.6,79.5,79.4,80.1,81.2,81.1,79.4,79.9,81.8,81.4,79.6],"Nilgiris":[80.9,81.0,78.2,81.0,81.8,80.7,79.9,81.6,78.1,81.6,79.0,79.5,79.3,79.1,81.1,80.7,77.9,79.9,80.6,81.7,78.7,79.8,80.3,80.9],"Karur":[80.9,79.5,78.7,81.6,79.2,80.1,79.7,79.9,81.0,80.0,78.6,79.1,80.3,80.8,79.5,79.0,78.5,78.4,80.9,83.3,81.0,80.3,80.1,78.1],"Tiruchirappalli":[80.1,79.2,82.2,80.9,78.8,79.8,79.3,78.0,81.0,77.7,80.9,80.4,78.3,80.1,79.4,79.8,81.3,79.7,79.7,81.6,79.9,79.0,80.2,80.7],"Perambalur":[80.7,81.4,83.1,80.8,79.7,79.3,79.8,79.4,79.9,79.4,77.8,79.9,80.8,80.9,80.0,79.3,80.6,81.7,81.8,79.3,78.9,82.1,81.2,82.7],"Ariyalur":[80.5,79.4,79.1,78.4,79.8,78.4,81.2,80.7,78.9,79.4,81.1,80.5,80.3,80.1,77.2,78.8,79.7,80.2,79.3,81.2,80.3,79.7,78.7,79.7],"Thanjavur":[78.1,80.6,77.5,79.0,80.6,80.3,78.8,80.0,80.3,78.2,80.4,80.3,81.3,79.3,81.9,79.5,78.8,81.1,79.0,78.0,81.0,79.9,81.0,81.0],"Tiruvarur":[79.8,79.5,80.1,78.5,78.0,79.9,77.9,81.0,80.8,79.5,80.9,78.8,79.9,79.9,80.6,80.5,80.7,81.1,81.6,78.8,80.1,78.3,79.9,76.8],"Nagapattinam":[77.9,78.1,79.9,80.8,77.1,79.9,76.8,80.9,79.7,80.5,81.0,81.5,80.7,79.4,80.3,83.0,80.8,76.6,80.5,79.2,81.7,80.2,80.9,80.6],"Mayiladuthurai":[80.9,81.9,79.5,80.9,78.6,79.1,80.6,79.8,79.3,80.7,80.8,78.7,80.5,81.1,79.3,78.9,78.6,80.3,78.7,80.7,80.2,77.7,80.6,80.2],"Pudukkottai":[79.4,80.1,80.0,79.3,78.4,78.0,80.5,76.7,79.8,80.1,78.0,80.1,79.4,78.8,78.0,77.7,79.0,81.8,80.3,81.2,79.9,78.2,77.4,80.1],"Madurai":[79.8,79.6,78.8,80.0,80.5,80.2,82.0,78.8,79.6,79.4,81.2,81.6,79.7,80.9,79.7,78.6,80.2,80.6,81.0,81.5,79.1,79.3,80.5,80.8],"Dindigul":[79.3,78.5,81.7,76.4,77.4,82.2,81.2,80.9,79.0,81.4,79.4,80.7,80.2,81.0,79.8,79.8,81.0,79.0,81.1,79.7,78.9,80.2,80.7,79.9],"Theni":[77.8,80.9,79.9,78.8,77.9,81.4,80.8,80.8,80.1,81.0,78.5,80.7,79.6,80.5,78.9,79.9,83.1,80.4,77.9,82.9,81.2,81.5,79.8,81.5],"Sivagangai":[81.3,78.8,80.3,81.8,78.7,78.1,78.6,80.1,82.3,79.5,79.6,80.1,79.7,79.7,81.6,80.2,80.5,80.1,79.8,81.0,81.5,81.4,80.8,79.6],"Ramanathapuram":[78.1,80.4,80.1,79.0,80.8,80.0,79.0,81.3,80.5,82.5,81.6,78.8,80.5,79.0,82.3,82.1,80.5,80.4,78.1,77.3,80.9,82.7,78.9,81.5],"Virudhunagar":[80.1,80.0,80.4,80.1,79.9,80.8,80.5,78.6,80.0,80.5,80.0,79.1,79.7,80.5,81.3,79.8,79.4,78.2,79.5,79.2,78.1,80.3,81.4,79.3],"Thoothukudi":[81.3,81.3,81.3,78.4,82.0,80.5,77.5,80.2,78.7,81.8,80.9,79.5,79.8,79.1,81.6,79.8,80.6,78.8,80.4,78.3,80.5,78.4,79.0,82.2],"Tirunelveli":[79.0,78.8,80.2,81.7,82.3,80.3,81.3,79.8,80.8,80.7,78.9,82.2,77.6,80.0,79.5,79.3,81.5,80.1,79.9,81.5,79.1,81.0,80.2,79.5],"Tenkasi":[81.8,81.1,80.1,79.3,80.2,80.0,81.1,79.1,79.8,79.9,79.8,79.9,77.8,79.9,80.2,79.1,81.1,80.2,80.0,80.3,78.6,77.7,77.4,77.4],"Kanniyakumari":[78.9,80.9,80.8,78.1,80.7,80.4,79.2,80.3,79.4,80.1,82.6,80.4,79.6,81.6,79.6,78.9,81.0,81.9,80.5,79.2,78.2,81.2,79.4,79.8]};
+
+const MONTHLY = {"Chennai":[78.3,79.3,79.0,80.2,80.3,80.5,80.8,78.8,81.2,79.3,79.7,79.2],"Chengalpattu":[79.6,81.3,79.8,79.4,80.5,80.6,80.9,79.5,81.4,79.9,80.0,80.6],"Kancheepuram":[80.4,79.3,80.5,79.9,79.9,79.9,79.9,79.3,78.8,80.4,80.9,79.7],"Tiruvallur":[80.3,80.3,79.5,82.3,80.0,78.8,80.0,80.0,80.6,79.9,81.0,80.2],"Vellore":[79.6,80.4,79.8,80.4,80.7,79.0,79.7,79.8,81.1,78.2,78.0,79.5],"Ranipet":[81.6,79.3,79.5,78.9,79.9,79.7,79.7,79.7,79.9,79.2,79.6,80.9],"Tirupattur":[80.6,80.1,79.6,80.4,79.3,79.9,78.2,81.4,79.8,80.6,80.0,80.4],"Tiruvannamalai":[79.7,80.1,81.3,78.4,78.6,78.7,79.8,79.9,79.9,80.3,78.9,80.4],"Villupuram":[79.6,80.2,79.6,79.2,79.0,80.0,80.0,78.9,79.4,80.1,81.3,78.4],"Kallakurichi":[80.6,80.7,79.2,79.3,80.8,80.9,81.2,80.9,80.8,80.9,78.5,81.3],"Cuddalore":[79.7,81.8,79.0,80.1,80.2,79.8,79.3,80.3,80.1,79.7,81.1,79.8],"Salem":[79.2,80.0,80.6,79.8,80.8,79.4,80.7,80.1,80.3,80.4,79.2,79.6],"Namakkal":[79.7,80.2,79.6,79.9,79.8,82.0,80.6,81.6,79.2,81.0,80.2,80.6],"Dharmapuri":[80.0,80.9,79.9,80.1,80.6,80.0,78.6,80.6,80.4,79.6,78.8,80.6],"Krishnagiri":[81.3,80.1,81.0,79.2,79.9,79.8,80.4,80.0,80.6,81.2,78.6,80.9],"Erode":[79.8,79.5,80.9,80.3,80.5,80.6,80.2,80.4,80.8,80.1,80.8,81.6],"Tiruppur":[77.4,80.1,80.3,80.3,79.3,80.0,78.7,79.2,79.8,79.6,78.7,78.3],"Coimbatore":[80.9,79.2,79.8,80.9,80.8,80.5,78.8,80.2,81.3,79.5,81.5,80.9],"Nilgiris":[79.0,80.5,80.1,80.2,80.9,81.1,79.6,81.0,79.2,80.0,80.7,79.4],"Karur":[80.7,79.8,79.1,78.9,80.8,80.0,80.9,79.2,79.6,80.3,79.6,80.4],"Tiruchirappalli":[80.4,81.1,78.3,79.4,78.0,79.5,81.8,80.9,79.0,80.1,80.2,80.3],"Perambalur":[79.8,79.8,81.0,81.1,80.4,79.9,79.8,80.9,78.6,80.6,81.7,81.4],"Ariyalur":[79.1,80.7,79.5,79.3,79.5,79.4,79.5,79.3,81.7,79.7,79.3,79.6],"Thanjavur":[79.6,79.6,79.2,80.5,78.8,79.2,78.9,79.3,80.3,80.9,81.2,80.6],"Tiruvarur":[79.4,79.5,79.3,79.8,78.8,79.8,79.3,80.2,80.4,79.3,79.8,80.8],"Nagapattinam":[80.0,80.7,80.1,80.4,79.6,79.6,78.3,79.7,81.2,79.4,80.3,79.8],"Mayiladuthurai":[79.8,79.4,79.1,79.7,78.8,80.2,81.1,80.1,79.4,80.6,80.1,80.5],"Pudukkottai":[79.0,80.5,79.4,78.6,79.1,80.5,77.7,81.4,78.6,78.2,78.6,79.5],"Madurai":[81.7,80.6,79.3,80.2,80.4,80.6,78.9,81.7,79.6,79.1,79.2,80.3],"Dindigul":[80.9,81.4,80.9,80.2,78.7,80.3,80.5,79.3,79.2,80.0,78.5,79.8],"Theni":[79.0,80.5,79.3,80.7,80.1,80.3,80.2,80.7,81.7,80.4,79.5,80.7],"Sivagangai":[79.3,80.0,79.8,79.3,80.2,80.5,79.1,81.9,80.6,79.6,82.2,80.1],"Ramanathapuram":[80.7,78.5,81.5,79.9,79.4,80.1,81.0,81.2,80.6,80.6,80.3,79.3],"Virudhunagar":[78.5,80.7,80.3,79.2,79.8,81.1,80.0,78.8,80.0,79.3,81.3,79.5],"Thoothukudi":[79.9,79.3,79.3,80.3,80.9,78.3,80.5,79.4,80.4,80.9,81.1,80.5],"Tirunelveli":[80.6,80.1,80.6,79.7,79.9,80.2,80.5,80.9,79.6,80.4,79.2,80.8],"Tenkasi":[81.3,80.7,80.0,79.5,78.9,79.8,78.5,79.8,79.2,80.1,79.4,78.8],"Kanniyakumari":[81.8,80.3,79.6,80.4,80.8,79.0,80.1,80.6,79.7,79.6,78.9,80.3]};
+
+const WEEKLY = [79.98,80.08,79.75,79.96,80.17,80.13,80.25,80.26,79.89,79.59,79.78,80.09,80.1,79.71,79.73,80.13,79.77,80.36,79.37,80.06,80.2,79.78,79.6,80.18,80.17,79.91,79.8,79.72,79.87,79.59,80.31,80.42,80.0,80.61,79.57,80.02,80.01,80.56,79.81,80.2,79.93,79.95,79.86,79.67,79.77,80.34,80.03,79.95,80.43,80.54,79.33,80.31];
+
+function getStatus(avg) {
+  return avg > 82 ? 'danger' : avg > 79 ? 'warn' : 'safe';
+}
+function statusColor(s) {
+  return s==='danger' ? '#f87171' : s==='warn' ? '#fbbf24' : '#34d399';
+}
+
+// ═══════════════════════ GLOBAL RISK SOUND ENGINE ═══════════════════════
+// Shared, lightweight Web Audio cue system used across Zone Risk, Optimizer,
+// Festival Demand and Grid Crisis pages. Danger = sharp high alert tone,
+// Warning = warm mid tone, Safe = calm low base tone.
+let gAudioCtx=null, gMasterGain=null, gSoundEnabled=true;
+function gEnsureAudio(){
+  if(!gAudioCtx){
+    gAudioCtx=new(window.AudioContext||window.webkitAudioContext)();
+    gMasterGain=gAudioCtx.createGain();
+    gMasterGain.gain.value=0.22;
+    gMasterGain.connect(gAudioCtx.destination);
+  }
+  if(gAudioCtx.state==='suspended') gAudioCtx.resume();
+  return gAudioCtx;
+}
+// Tone presets per risk level: [base frequency Hz, waveform, character]
+const RISK_TONE = {
+  danger:{freq:880, type:'square',  detune:1.06, dur:0.34, label:'alert'},
+  warn:  {freq:494, type:'triangle',detune:1.0,  dur:0.28, label:'warm'},
+  safe:  {freq:262, type:'sine',    detune:1.0,  dur:0.30, label:'base'}
+};
+function setGlobalSoundEnabled(v){
+  gSoundEnabled=v;
+  document.querySelectorAll('.sound-toggle-btn').forEach(b=>{
+    b.textContent = v ? '🔊 Sound On' : '🔇 Sound Off';
+    b.classList.toggle('btn-warn', !v);
+  });
+}
+function toggleGlobalSound(){ setGlobalSoundEnabled(!gSoundEnabled); if(gSoundEnabled) playRiskTone('safe',0.5); }
+// Plays a single cue for a risk level. intensity (0-1+) scales pitch/volume for "how far into the band".
+function playRiskTone(status, intensity=0.5, opts={}){
+  if(!gSoundEnabled) return;
+  const ctx=gEnsureAudio();
+  const t0=ctx.currentTime;
+  const preset=RISK_TONE[status]||RISK_TONE.safe;
+  const osc=ctx.createOscillator();
+  const gain=ctx.createGain();
+  osc.type=preset.type;
+  // Danger gets a noticeably higher pitch the more severe; warn/safe stay warm & gentle.
+  const pitchSpread = status==='danger' ? 1+intensity*0.9 : status==='warn' ? 1+intensity*0.25 : 1+intensity*0.1;
+  osc.frequency.setValueAtTime(preset.freq*pitchSpread, t0);
+  if(status==='danger'){
+    // Sharp two-pulse alert — rises slightly, like a klaxon blip
+    osc.frequency.exponentialRampToValueAtTime(preset.freq*pitchSpread*1.15, t0+preset.dur*0.5);
+  } else {
+    osc.frequency.exponentialRampToValueAtTime(preset.freq*pitchSpread*0.97, t0+preset.dur);
+  }
+  const peakVol = (opts.volume!=null?opts.volume:0.18) * (status==='danger'?1.15:1);
+  gain.gain.setValueAtTime(0.0001, t0);
+  gain.gain.exponentialRampToValueAtTime(peakVol, t0+0.02);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t0+preset.dur);
+  osc.connect(gain); gain.connect(gMasterGain);
+  osc.start(t0); osc.stop(t0+preset.dur+0.02);
+  if(status==='danger' && opts.doublePulse!==false){
+    const osc2=ctx.createOscillator(); const gain2=ctx.createGain();
+    osc2.type=preset.type;
+    osc2.frequency.setValueAtTime(preset.freq*pitchSpread*1.2, t0+preset.dur*0.55);
+    gain2.gain.setValueAtTime(0.0001, t0+preset.dur*0.55);
+    gain2.gain.exponentialRampToValueAtTime(peakVol*0.9, t0+preset.dur*0.55+0.02);
+    gain2.gain.exponentialRampToValueAtTime(0.0001, t0+preset.dur*1.05);
+    osc2.connect(gain2); gain2.connect(gMasterGain);
+    osc2.start(t0+preset.dur*0.55); osc2.stop(t0+preset.dur*1.1);
+  }
+}
+// Plays a short resolving chord — used when an optimization/recovery action succeeds.
+function playResolveChime(){
+  if(!gSoundEnabled) return;
+  const ctx=gEnsureAudio();
+  const t0=ctx.currentTime;
+  [392.0,523.25,659.25].forEach((f,i)=>{
+    const osc=ctx.createOscillator(); const gain=ctx.createGain();
+    osc.type='sine'; osc.frequency.value=f;
+    const start=t0+i*0.07;
+    gain.gain.setValueAtTime(0.0001,start);
+    gain.gain.exponentialRampToValueAtTime(0.16,start+0.03);
+    gain.gain.exponentialRampToValueAtTime(0.0001,start+0.5);
+    osc.connect(gain); gain.connect(gMasterGain);
+    osc.start(start); osc.stop(start+0.55);
+  });
+}
+// Escalating crisis siren — used for grid crisis activation, loops a few rising pulses.
+function playCrisisSiren(severity=1){
+  if(!gSoundEnabled) return;
+  const ctx=gEnsureAudio();
+  const t0=ctx.currentTime;
+  const pulses=3+Math.round(severity*2);
+  for(let i=0;i<pulses;i++){
+    const osc=ctx.createOscillator(); const gain=ctx.createGain();
+    osc.type='sawtooth';
+    const start=t0+i*0.22;
+    osc.frequency.setValueAtTime(620+i*40,start);
+    osc.frequency.exponentialRampToValueAtTime(980+i*40,start+0.16);
+    gain.gain.setValueAtTime(0.0001,start);
+    gain.gain.exponentialRampToValueAtTime(0.2,start+0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001,start+0.2);
+    osc.connect(gain); gain.connect(gMasterGain);
+    osc.start(start); osc.stop(start+0.22);
+  }
+}
+
+// ═══════════════════════ NAVIGATION ═══════════════════════
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  event.target.classList.add('active');
+  setGlobalSoundEnabled(gSoundEnabled);
+  if(id==='hero' && !heroInitDone) initHero();
+  if(id==='zones' && !zonesInitDone) initZones();
+  if(id==='optimizer' && !optInitDone) initOptimizer();
+  if(id==='sound') initSound();
+  if(id==='dna' && !dnaInitDone) initDNA();
+  if(id==='blackout' && !blackoutInitDone) initBlackout();
+  if(id==='transformer' && !tfInitDone) initTransformer();
+  if(id==='festival' && !festInitDone) initFestival();
+  if(id==='carbon' && !carbonInitDone) initCarbon();
+  if(id==='crisis' && !crisisInitDone) initCrisis();
+  if(id==='ai') initAI();
+}
+
+// ═══════════════════════ PAGE 1: HERO ═══════════════════════
+let heroInitDone=false, forecastChart, evChart, monthlyChart, weeklyChart;
+let currentScenario='normal';
+
+function initHero() {
+  heroInitDone=true;
+  const sel = document.getElementById('forecastDistrict');
+  DISTRICTS.forEach(d => { const o=document.createElement('option'); o.value=d; o.text=d; sel.appendChild(o); });
+
+  // Forecast chart
+  const fCtx = document.getElementById('forecastChart').getContext('2d');
+  const hours = Array.from({length:24},(_,i)=> `${String(i).padStart(2,'0')}:00`);
+  forecastChart = new Chart(fCtx, {
+    type:'line',
+    data:{ labels:hours, datasets:[
+      {label:'95% CI Upper',data:[],borderWidth:0,backgroundColor:'rgba(56,189,248,0.12)',fill:'+1',pointRadius:0},
+      {label:'95% CI Lower',data:[],borderWidth:0,backgroundColor:'rgba(56,189,248,0.12)',fill:false,pointRadius:0},
+      {label:'Forecast',data:[],borderColor:'#38bdf8',borderWidth:2,fill:false,tension:0.4,pointRadius:0},
+      {label:'Actual',data:[],borderColor:'#fbbf24',borderWidth:1.5,borderDash:[4,3],fill:false,tension:0.4,pointRadius:0}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{min:55,max:110,grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#94a3b8',font:{size:10}}},x:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#94a3b8',font:{size:10}}}}}
+  });
+
+  // EV chart
+  const evCtx = document.getElementById('evChart').getContext('2d');
+  evChart = new Chart(evCtx, {
+    type:'bar',
+    data:{labels:['6h','9h','12h','15h','18h','21h'],datasets:[
+      {label:'Base Load',data:[78,80,82,81,84,83],backgroundColor:'rgba(56,189,248,0.4)'},
+      {label:'EV Impact',data:[2,1,3,4,8,6],backgroundColor:'rgba(129,140,248,0.5)'}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{stacked:true,ticks:{color:'#94a3b8',font:{size:9}},grid:{display:false}},y:{stacked:true,ticks:{color:'#94a3b8',font:{size:9}},grid:{color:'rgba(255,255,255,0.05)'}}}}
+  });
+
+  // Monthly chart
+  const mCtx = document.getElementById('monthlyChart').getContext('2d');
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const monthlyAll=[79.98,80.16,79.86,79.9,79.86,79.99,79.83,80.18,80.11,79.97,79.94,80.14];
+  monthlyChart = new Chart(mCtx, {
+    type:'bar',
+    data:{labels:months,datasets:[{label:'Avg Load %',data:monthlyAll,backgroundColor:monthlyAll.map(v=>v>80.1?'rgba(248,113,113,0.6)':v>79.9?'rgba(251,191,36,0.6)':'rgba(56,189,248,0.5)'),borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{min:79,max:80.5,ticks:{color:'#94a3b8',font:{size:10}},grid:{color:'rgba(255,255,255,0.05)'}},x:{ticks:{color:'#94a3b8',font:{size:10}},grid:{display:false}}}}
+  });
+
+  // Weekly chart
+  const wCtx = document.getElementById('weeklyChart').getContext('2d');
+  weeklyChart = new Chart(wCtx, {
+    type:'line',
+    data:{labels:Array.from({length:52},(_,i)=>`W${i+1}`),datasets:[{label:'Weekly Avg Load %',data:WEEKLY,borderColor:'#818cf8',borderWidth:1.5,fill:true,backgroundColor:'rgba(129,140,248,0.1)',tension:0.3,pointRadius:0}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{min:79,max:81,ticks:{color:'#94a3b8',font:{size:10}},grid:{color:'rgba(255,255,255,0.05)'}},x:{ticks:{color:'#94a3b8',font:{size:9},maxTicksLimit:13},grid:{display:false}}}}
+  });
+
+  updateForecast();
+}
+
+function setScenario(s, btn) {
+  currentScenario=s;
+  document.querySelectorAll('.scenario-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const presets={normal:[32,30,70],heatwave:[42,40,70],cyclone:[28,20,50],festival:[34,50,60],industrial:[32,30,95]};
+  const p=presets[s];
+  document.getElementById('slTemp').value=p[0]; document.getElementById('valTemp').textContent=p[0]+'°';
+  document.getElementById('slEV').value=p[1]; document.getElementById('valEV').textContent=p[1]+'%';
+  document.getElementById('slInd').value=p[2]; document.getElementById('valInd').textContent=p[2]+'%';
+  updateForecast();
+}
+
+function updateForecast() {
+  if(!forecastChart) return;
+  const distName = document.getElementById('forecastDistrict').value;
+  const base = distName==='all' ? Array.from({length:24},()=>80) : HOURLY[distName]||Array.from({length:24},()=>80);
+  const temp = +document.getElementById('slTemp').value;
+  const ev = +document.getElementById('slEV').value;
+  const ind = +document.getElementById('slInd').value;
+  const tempFactor = (temp-32)*0.5;
+  const evFactor = (ev-30)*0.08;
+  const indFactor = (ind-70)*0.06;
+  const forecast = base.map((v,i)=>{
+    const timeBoost = Math.sin(i/24*Math.PI*2)*2;
+    return Math.round((v + tempFactor + evFactor + indFactor + timeBoost)*10)/10;
+  });
+  const ci = 3.5 + tempFactor*0.3;
+  forecastChart.data.datasets[0].data = forecast.map(v=>+(v+ci).toFixed(1));
+  forecastChart.data.datasets[1].data = forecast.map(v=>+(v-ci).toFixed(1));
+  forecastChart.data.datasets[2].data = forecast;
+  forecastChart.data.datasets[3].data = base.map(v=>v+Math.random()*2-1);
+  forecastChart.update('none');
+  // Update EV chart
+  const evLoad = [ev*0.07,ev*0.04,ev*0.1,ev*0.13,ev*0.27,ev*0.2].map(v=>Math.round(v*10)/10);
+  if(evChart) { evChart.data.datasets[1].data=evLoad; evChart.update('none'); }
+}
+
+// ═══════════════════════ PAGE 2: ZONES ═══════════════════════
+let zonesInitDone=false, trajectoryChart, selectedZone=null;
+
+function initZones() {
+  zonesInitDone=true;
+  const grid=document.getElementById('zonesGrid');
+  // Show top 6 districts in hero zone cards
+  const heroZones=['Theni','Erode','Namakkal','Tiruvallur','Perambalur','Sivagangai'];
+  heroZones.forEach(d=>{
+    const data=DIST_DATA[d];
+    const st=getStatus(data.avg);
+    const col=statusColor(st);
+    const h=HOURLY[d]||[];
+    const div=document.createElement('div');
+    div.className=`zone-card ${st}`;
+    div.innerHTML=`
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div class="zone-name">${d}</div>
+        <span class="badge badge-${st}">${st.toUpperCase()}</span>
+      </div>
+      <div class="zone-load-big" style="color:${col}">${data.avg.toFixed(1)}<span style="font-size:14px;font-weight:400;color:var(--muted)">%</span></div>
+      <div class="zone-stats">
+        <div class="zone-stat">Overloads: <span style="color:${col}">${data.overloads.toLocaleString()}</span></div>
+        <div class="zone-stat">Outages: <span>${data.outages}</span></div>
+        <div class="zone-stat">Temp: <span>${data.temp.toFixed(1)}°C</span></div>
+        <div class="zone-stat">Consumers: <span>${(data.consumers/1000).toFixed(1)}k</span></div>
+      </div>
+      <canvas class="zone-trajectory" id="zt_${d}"></canvas>`;
+    div.onclick=()=>selectZone(d);
+    grid.appendChild(div);
+    // Mini trend line — scaled to this zone's own 24h range (padded) so normal
+    // hour-to-hour noise reads as a calm trend instead of a spiky alarm chart.
+    const ctx=document.getElementById(`zt_${d}`).getContext('2d');
+    const hMin=Math.min(...h), hMax=Math.max(...h);
+    const pad=Math.max(2.5,(hMax-hMin)*0.6);
+    new Chart(ctx,{type:'line',data:{labels:Array.from({length:24},(_,i)=>i),datasets:[{data:h,borderColor:col,borderWidth:2,fill:true,backgroundColor:col.replace(')',',0.08)').replace('rgb','rgba'),tension:0.55,pointRadius:0,cubicInterpolationMode:'monotone'}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:0},plugins:{legend:{display:false},tooltip:{enabled:false}},scales:{x:{display:false},y:{display:false,min:hMin-pad,max:hMax+pad}}}});
+  });
+
+  // All districts grid
+  const allGrid=document.getElementById('allDistrictsGrid');
+  DISTRICTS.forEach(d=>{
+    const data=DIST_DATA[d];
+    const st=getStatus(data.avg);
+    const col=statusColor(st);
+    const div=document.createElement('div');
+    div.className=`dist-row ${st}`;
+    div.dataset.district=d;
+    div.dataset.status=st;
+    div.innerHTML=`<div><div class="dist-name">${d}</div><div style="font-size:10px;color:var(--muted);">${data.overloads} overloads · ${data.outages} outages</div></div><div class="dist-load" style="color:${col}">${data.avg.toFixed(1)}%</div>`;
+    div.onclick=()=>selectZone(d);
+    div.onmouseenter=()=>{ const intensity = st==='danger' ? Math.min(1,(data.avg-82)/8) : st==='warn' ? Math.min(1,(data.avg-79)/3) : Math.min(1,(79-data.avg)/4); playRiskTone(st, Math.max(0.1,intensity)*0.7, {volume:0.1, doublePulse:false}); };
+    allGrid.appendChild(div);
+  });
+
+  // Trajectory chart — tight, sensible scale (load only moves a few points
+  // hour to hour) with warning/danger threshold lines for context.
+  const tCtx=document.getElementById('trajectoryChart').getContext('2d');
+  trajectoryChart=new Chart(tCtx,{type:'line',data:{labels:['Now','1h','2h','3h','4h','5h','6h'],datasets:[
+    {label:'Load %',data:[],borderColor:'#38bdf8',borderWidth:2.5,fill:true,backgroundColor:'rgba(56,189,248,0.1)',tension:0.45,cubicInterpolationMode:'monotone',pointRadius:3,pointBackgroundColor:'#38bdf8',pointBorderColor:'#0a0e1a',pointBorderWidth:1.5,order:1},
+    {label:'Warn threshold',data:[79,79,79,79,79,79,79],borderColor:'rgba(251,191,36,0.45)',borderWidth:1,borderDash:[4,4],pointRadius:0,fill:false,tension:0,order:2},
+    {label:'Danger threshold',data:[82,82,82,82,82,82,82],borderColor:'rgba(248,113,113,0.45)',borderWidth:1,borderDash:[4,4],pointRadius:0,fill:false,tension:0,order:3}
+  ]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:400},plugins:{legend:{display:false}},scales:{y:{min:73,max:88,ticks:{color:'#94a3b8',font:{size:10},stepSize:3},grid:{color:'rgba(255,255,255,0.05)'}},x:{ticks:{color:'#94a3b8',font:{size:10}},grid:{display:false}}}}});
+}
+
+function selectZone(d) {
+  selectedZone=d;
+  const data=DIST_DATA[d];
+  const h=HOURLY[d]||Array.from({length:24},()=>80);
+  const st=getStatus(data.avg);
+  document.getElementById('trajectoryLabel').textContent=d;
+  document.getElementById('trajectoryBadge').className=`badge badge-${st}`;
+  document.getElementById('trajectoryBadge').textContent=`${data.avg.toFixed(1)}% avg · ${st}`;
+  const now=new Date().getHours();
+  const trajectory=[0,1,2,3,4,5,6].map(i=>+(h[(now+i)%24]+Math.random()*2-1).toFixed(1));
+  if(trajectoryChart){trajectoryChart.data.datasets[0].data=trajectory;trajectoryChart.data.datasets[0].borderColor=statusColor(st);trajectoryChart.data.datasets[0].pointBackgroundColor=statusColor(st);trajectoryChart.update();}
+  // Risk sound cue — intensity reflects how deep the load sits inside its risk band
+  const intensity = st==='danger' ? Math.min(1,(data.avg-82)/8) : st==='warn' ? Math.min(1,(data.avg-79)/3) : Math.min(1,(79-data.avg)/4);
+  playRiskTone(st, Math.max(0.15,intensity));
+}
+
+function filterDistricts(q) {
+  document.querySelectorAll('.dist-row').forEach(r=>{
+    r.style.display = r.dataset.district.toLowerCase().includes(q.toLowerCase()) ? '' : 'none';
+  });
+}
+function filterStatus(s) {
+  document.querySelectorAll('.dist-row').forEach(r=>{
+    r.style.display = (!s || r.dataset.status===s) ? '' : 'none';
+  });
+}
+
+// ═══════════════════════ PAGE 3: OPTIMIZER ═══════════════════════
+let optInitDone=false, beforeChart, afterChart;
+
+function initOptimizer() {
+  optInitDone=true;
+  const bCtx=document.getElementById('beforeChart').getContext('2d');
+  const aCtx=document.getElementById('afterChart').getContext('2d');
+  const top15=DISTRICTS.slice().sort((a,b)=>DIST_DATA[b].avg-DIST_DATA[a].avg).slice(0,15);
+  const beforeData=top15.map(d=>DIST_DATA[d].avg);
+  const colors=beforeData.map(v=>v>82?'rgba(248,113,113,0.7)':v>79?'rgba(251,191,36,0.6)':'rgba(52,211,153,0.6)');
+  beforeChart=new Chart(bCtx,{type:'bar',data:{labels:top15,datasets:[{label:'Load %',data:beforeData,backgroundColor:colors,borderRadius:4}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{min:75,max:85,ticks:{color:'#94a3b8',font:{size:9}},grid:{color:'rgba(255,255,255,0.05)'}},y:{ticks:{color:'#94a3b8',font:{size:10}}}}}});
+  afterChart=new Chart(aCtx,{type:'bar',data:{labels:top15,datasets:[{label:'Optimized %',data:[],backgroundColor:'rgba(56,189,248,0.6)',borderRadius:4}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{min:75,max:85,ticks:{color:'#94a3b8',font:{size:9}},grid:{color:'rgba(255,255,255,0.05)'}},y:{ticks:{color:'#94a3b8',font:{size:10}}}}}});
+  runOptimizer();
+}
+
+let optSoundDebounce=null;
+function runOptimizer() {
+  if(!beforeChart||!afterChart) return;
+  const maxT=+document.getElementById('optMaxTransfer').value/100;
+  const thresh=+document.getElementById('optThreshold').value;
+  const top15=DISTRICTS.slice().sort((a,b)=>DIST_DATA[b].avg-DIST_DATA[a].avg).slice(0,15);
+  const loads=top15.map(d=>DIST_DATA[d].avg);
+  const optimized=[...loads];
+  const tbody=document.getElementById('redistBody');
+  tbody.innerHTML='';
+  let totalSqBefore=0,totalSqAfter=0,moves=[];
+  loads.forEach((v,i)=>{
+    totalSqBefore+=Math.pow(Math.max(0,v-thresh),2);
+    if(v>thresh){
+      const excess=v-thresh;
+      const transfer=Math.min(excess*0.6,maxT*100);
+      optimized[i]-=transfer;
+      const targetIdx=optimized.reduce((mi,ov,j)=>ov<optimized[mi]?j:mi,0);
+      optimized[targetIdx]+=transfer*0.9;
+      moves.push({from:top15[i],before:v,after:optimized[i],to:top15[targetIdx],amount:transfer});
+    }
+  });
+  optimized.forEach(v=>{ totalSqAfter+=Math.pow(Math.max(0,v-thresh),2); });
+  afterChart.data.datasets[0].data=optimized.map(v=>+v.toFixed(1));
+  afterChart.data.datasets[0].backgroundColor=optimized.map(v=>{
+    const st=getStatus(v);
+    return st==='danger'?'rgba(248,113,113,0.7)':st==='warn'?'rgba(251,191,36,0.6)':'rgba(52,211,153,0.6)';
+  });
+  afterChart.update('none');
+  moves.slice(0,8).forEach(m=>{
+    const stBefore=getStatus(m.before), stAfter=getStatus(m.after);
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${m.from}</td><td style="color:${statusColor(stBefore)}">${m.before.toFixed(1)}%</td><td class="arrow-right">→</td><td style="color:${statusColor(stAfter)}">${m.after.toFixed(1)}%</td><td style="color:var(--accent)">${m.to}</td><td>−${m.amount.toFixed(1)}%</td>`;
+    tbody.appendChild(tr);
+  });
+  const reduction=((totalSqBefore-totalSqAfter)/Math.max(1,totalSqBefore)*100).toFixed(1);
+  document.getElementById('mathNote').innerHTML=`Objective: min Σ(loadᵢ − ${thresh})² over all i<br>
+Before: Σ(load−cap)² = ${totalSqBefore.toFixed(0)} | After: ${totalSqAfter.toFixed(0)}<br>
+Reduction: ${reduction}% | Transfers: ${moves.length} | Max per link: ${(maxT*100).toFixed(0)}%<br>
+Algorithm: Greedy descent on quadratic loss surface (gradient step proportional to excess load)`;
+
+  // Sound cues — debounced so dragging sliders doesn't trigger a flood of tones
+  clearTimeout(optSoundDebounce);
+  optSoundDebounce=setTimeout(()=>{
+    if(moves.length>0){
+      // Alert tone scaled to how overloaded the worst zone was, then a resolving chime once redistributed
+      const worst=Math.max(...moves.map(m=>m.before));
+      playRiskTone('danger', Math.min(1,(worst-thresh)/15));
+      setTimeout(()=>playResolveChime(), 380);
+    } else {
+      playRiskTone('safe', 0.4);
+    }
+  }, 220);
+}
+
+// ═══════════════════════ PAGE 4: SOUND ═══════════════════════
+let audioCtx=null,oscillators={},gainNodes={},masterGain=null,analyser=null;
+let soundPlaying=false,waveAnimFrame=null;
+const NOTES_SAFE=[261.63,293.66,329.63,349.23,392.0,440.0,493.88];
+const NOTES_WARN=[277.18,311.13,369.99,415.3];
+const NOTES_DANGER=[246.94,277.18,369.99,415.3];
+
+function initSound() {
+  renderSoundGrid();
+}
+
+function renderSoundGrid() {
+  const grid=document.getElementById('soundGrid');
+  if(grid.children.length>0) return;
+  DISTRICTS.slice(0,24).forEach((d,i)=>{
+    const data=DIST_DATA[d];
+    const st=getStatus(data.avg);
+    const col=statusColor(st);
+    const freq=200+(data.avg-40)*4;
+    const btnBg  = st==='danger'?'rgba(248,113,113,0.15)':st==='warn'?'rgba(251,191,36,0.15)':'rgba(52,211,153,0.15)';
+    const btnBdr = st==='danger'?'#f87171':st==='warn'?'#fbbf24':'#34d399';
+    const btnIcon= st==='danger'?'🔴':st==='warn'?'🟡':'🟢';
+    const div=document.createElement('div');
+    div.className='sound-zone';
+    div.id=`szone_${d.replace(/\s/g,'_')}`;
+    div.style.cursor='default';
+    const safeD=d.replace(/'/g,"\\'");
+    div.innerHTML=`
+      <div class="sound-zone-name">${d}</div>
+      <div class="sound-wave" id="sw_${i}">${Array.from({length:7},(_,j)=>`<div class="sound-bar" style="background:${col};height:${15+Math.random()*20}px;animation-delay:${j*0.1}s;animation-duration:${0.5+Math.random()*0.5}s"></div>`).join('')}</div>
+      <div class="freq-val" style="color:${col}">${freq.toFixed(0)} Hz</div>
+      <div class="freq-display" style="margin-bottom:8px;">${st.toUpperCase()} · ${data.avg.toFixed(1)}%</div>
+      <button id="solobtn_${i}" onclick="soloDistrict('${safeD}',${i},this)" style="width:100%;padding:5px 0;border-radius:5px;cursor:pointer;font-size:11px;font-weight:600;background:${btnBg};border:1px solid ${btnBdr};color:${btnBdr};transition:all .2s;letter-spacing:.5px;">${btnIcon} Solo</button>`;
+    grid.appendChild(div);
+  });
+}
+
+async function toggleSound() {
+  const btn=document.getElementById('listenBtn');
+  if(!soundPlaying) {
+    if(!audioCtx) {
+      audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+      masterGain=audioCtx.createGain();
+      analyser=audioCtx.createAnalyser();
+      analyser.fftSize=1024;
+      masterGain.connect(analyser);
+      analyser.connect(audioCtx.destination);
+    }
+    // Resume context — required by browser autoplay policy
+    if(audioCtx.state==='suspended') await audioCtx.resume();
+    masterGain.gain.value=+document.getElementById('masterVol').value/100*0.7;
+    startAllOscillators();
+    btn.textContent='⏹ Stop Grid Sound';
+    soundPlaying=true;
+    drawWaveform();
+  } else {
+    stopAllOscillators();
+    btn.textContent='▶ Listen to Grid';
+    soundPlaying=false;
+    if(waveAnimFrame) cancelAnimationFrame(waveAnimFrame);
+  }
+}
+
+function startAllOscillators() {
+  const n=Math.min(12,DISTRICTS.length);
+  DISTRICTS.slice(0,n).forEach((d,i)=>{
+    const data=DIST_DATA[d];
+    const st=getStatus(data.avg);
+    const osc=audioCtx.createOscillator();
+    const gain=audioCtx.createGain();
+    const wType=document.getElementById('waveType').value;
+    // Auto mode: danger=sawtooth (rich harmonics), warn=square (tense), safe=sine (consonant)
+    osc.type=wType==='auto'?(st==='danger'?'sawtooth':st==='warn'?'square':'sine'):wType;
+    const notes=st==='safe'?NOTES_SAFE:st==='warn'?NOTES_WARN:NOTES_DANGER;
+    osc.frequency.value=notes[i%notes.length];
+    // Per-status gain matching the demo: danger louder, safe quieter
+    gain.gain.value=st==='danger'?0.18:st==='warn'?0.10:0.07;
+    osc.connect(gain); gain.connect(masterGain);
+    osc.start();
+    oscillators[d]=osc; gainNodes[d]=gain;
+  });
+}
+
+function stopAllOscillators() {
+  Object.values(oscillators).forEach(o=>{ try{o.stop();}catch(e){} });
+  oscillators={}; gainNodes={};
+}
+
+function setMasterVolume(v) { if(masterGain) masterGain.gain.value=v/100*0.7; }
+function updateWaveType(t) { if(soundPlaying){stopAllOscillators();startAllOscillators();} }
+function updateSoundLoad(v) {
+  const load=+v;
+  DISTRICTS.slice(0,24).forEach((d,i)=>{
+    const data=DIST_DATA[d];
+    const simLoad=Math.min(120,data.avg+(load-80));
+    const freq=200+(simLoad-40)*4;
+    const st=getStatus(simLoad);
+    const col=statusColor(st);
+    const el=document.getElementById(`szone_${d.replace(/\s/g,'_')}`);
+    if(el){el.querySelector('.freq-val').textContent=freq.toFixed(0)+' Hz';el.querySelector('.freq-val').style.color=col;}
+    if(oscillators[d]){const notes=st==='safe'?NOTES_SAFE:st==='warn'?NOTES_WARN:NOTES_DANGER;oscillators[d].frequency.exponentialRampToValueAtTime(notes[i%notes.length],audioCtx.currentTime+0.1);}
+  });
+}
+let soloCtx=null, soloTimeout=null, activeSoloBtn=null;
+
+async function soloDistrict(d, idx, btn) {
+  const data=DIST_DATA[d];
+  const st=getStatus(data.avg);
+  const col=statusColor(st);
+  const btnBg  = st==='danger'?'rgba(248,113,113,0.35)':st==='warn'?'rgba(251,191,36,0.35)':'rgba(52,211,153,0.35)';
+  const btnBdr = st==='danger'?'#f87171':st==='warn'?'#fbbf24':'#34d399';
+  const btnIcon= st==='danger'?'🔴':st==='warn'?'🟡':'🟢';
+
+  // If same button already active — stop it
+  if(activeSoloBtn===btn && btn.dataset.playing==='1') {
+    _stopSolo(btn, btnBg.replace('0.35','0.15'), btnBdr, btnIcon);
+    return;
+  }
+
+  // Reset previously active button
+  if(activeSoloBtn && activeSoloBtn!==btn) {
+    const prevSt=activeSoloBtn.dataset.st||'safe';
+    const prevBg=prevSt==='danger'?'rgba(248,113,113,0.15)':prevSt==='warn'?'rgba(251,191,36,0.15)':'rgba(52,211,153,0.15)';
+    const prevBdr=prevSt==='danger'?'#f87171':prevSt==='warn'?'#fbbf24':'#34d399';
+    const prevIcon=prevSt==='danger'?'🔴':prevSt==='warn'?'🟡':'🟢';
+    activeSoloBtn.textContent=prevIcon+' Solo';
+    activeSoloBtn.style.background=prevBg;
+    activeSoloBtn.dataset.playing='0';
+  }
+  if(soloTimeout) { clearTimeout(soloTimeout); soloTimeout=null; }
+  if(soloCtx) { try{soloCtx.close();}catch(e){} soloCtx=null; }
+
+  // If global sound is playing, duck everyone else and highlight this zone
+  if(soundPlaying && gainNodes[d]) {
+    Object.keys(gainNodes).forEach(k=>{ gainNodes[k].gain.value=k===d?0.3:0.004; });
+    soloTimeout=setTimeout(()=>_restoreAllGains(), 3000);
+  }
+
+  // Spin up a solo context to play the district's tone
+  soloCtx=new(window.AudioContext||window.webkitAudioContext)();
+  if(soloCtx.state==='suspended') await soloCtx.resume();
+  const osc=soloCtx.createOscillator();
+  const gain=soloCtx.createGain();
+  const notes=st==='safe'?NOTES_SAFE:st==='warn'?NOTES_WARN:NOTES_DANGER;
+  osc.type=st==='danger'?'sawtooth':st==='warn'?'square':'sine';
+  osc.frequency.value=notes[idx%notes.length];
+  const vol=st==='danger'?0.22:st==='warn'?0.16:0.12;
+  gain.gain.setValueAtTime(0.0001,soloCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(vol,soloCtx.currentTime+0.05);
+  gain.gain.setValueAtTime(vol,soloCtx.currentTime+2.7);
+  gain.gain.exponentialRampToValueAtTime(0.0001,soloCtx.currentTime+3.0);
+  osc.connect(gain); gain.connect(soloCtx.destination);
+  osc.start(); osc.stop(soloCtx.currentTime+3.05);
+
+  // Visual active state
+  btn.textContent=btnIcon+' ■ Playing…';
+  btn.style.background=btnBg;
+  btn.style.borderColor=btnBdr;
+  btn.style.boxShadow=`0 0 8px ${btnBdr}88`;
+  btn.dataset.playing='1';
+  btn.dataset.st=st;
+  activeSoloBtn=btn;
+
+  // Pulse the sound bars brighter while playing
+  const card=document.getElementById(`szone_${d.replace(/\s/g,'_')}`);
+  if(card) { card.style.borderColor=btnBdr; card.style.boxShadow=`0 0 12px ${btnBdr}66`; }
+
+  soloTimeout=setTimeout(()=>{
+    _stopSolo(btn, btnBg.replace('0.35','0.15'), btnBdr, btnIcon);
+    if(soundPlaying) _restoreAllGains();
+    if(card) { card.style.borderColor=''; card.style.boxShadow=''; }
+  }, 3000);
+}
+
+function _stopSolo(btn, origBg, origBdr, icon) {
+  if(soloCtx) { try{soloCtx.close();}catch(e){} soloCtx=null; }
+  btn.textContent=icon+' Solo';
+  btn.style.background=origBg;
+  btn.style.boxShadow='none';
+  btn.dataset.playing='0';
+  activeSoloBtn=null;
+}
+
+function _restoreAllGains() {
+  Object.keys(gainNodes).forEach(k=>{
+    const st=getStatus(DIST_DATA[k]?.avg||80);
+    gainNodes[k].gain.value=st==='danger'?0.18:st==='warn'?0.10:0.07;
+  });
+}
+
+function drawWaveform() {
+  if(!soundPlaying) return;
+  const canvas=document.getElementById('waveformCanvas');
+  const ctx=canvas.getContext('2d');
+  canvas.width=canvas.offsetWidth;
+  const buf=new Uint8Array(analyser.frequencyBinCount);
+  function draw(){
+    if(!soundPlaying) return;
+    analyser.getByteTimeDomainData(buf);
+    ctx.fillStyle='#111827';ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.strokeStyle='#38bdf8';ctx.lineWidth=1.5;ctx.beginPath();
+    buf.forEach((v,i)=>{const x=i/buf.length*canvas.width;const y=(v/128-1)*canvas.height/2+canvas.height/2;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+    ctx.stroke();
+    waveAnimFrame=requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+// ═══════════════════════ PAGE 5: DNA ANALYZER ═══════════════════════
+let dnaInitDone=false,dnaLoadChart,fftChart,selectedDNA='Chennai',dnaBaseData=null,dnaInjected=false;
+
+function initDNA() {
+  dnaInitDone=true;
+  const list=document.getElementById('dnaDistrictList');
+  DISTRICTS.forEach(d=>{
+    const div=document.createElement('div');
+    div.className='dna-dist-item'+(d===selectedDNA?' active':'');
+    div.textContent=d;
+    div.onclick=()=>{document.querySelectorAll('.dna-dist-item').forEach(x=>x.classList.remove('active'));div.classList.add('active');selectedDNA=d;dnaInjected=false;renderDNA(d);};
+    list.appendChild(div);
+  });
+  const lCtx=document.getElementById('dnaLoadChart').getContext('2d');
+  dnaLoadChart=new Chart(lCtx,{type:'line',data:{labels:Array.from({length:24},(_,i)=>`${i}:00`),datasets:[{label:'Load %',data:[],borderColor:'#818cf8',borderWidth:2,fill:true,backgroundColor:'rgba(129,140,248,0.1)',tension:0.4,pointRadius:3,pointBackgroundColor:'#818cf8'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{min:70,max:95,ticks:{color:'#94a3b8',font:{size:10}},grid:{color:'rgba(255,255,255,0.05)'}},x:{ticks:{color:'#94a3b8',font:{size:10}},grid:{display:false}}}}});
+  const fCtx=document.getElementById('fftChart').getContext('2d');
+  fftChart=new Chart(fCtx,{type:'bar',data:{labels:['DC','2h cycle','4h cycle','6h cycle','8h cycle','12h cycle','24h cycle','48h','72h'],datasets:[{label:'Amplitude',data:[],backgroundColor:'rgba(56,189,248,0.6)',borderRadius:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{color:'#94a3b8',font:{size:9}},grid:{color:'rgba(255,255,255,0.05)'}},x:{ticks:{color:'#94a3b8',font:{size:9}},grid:{display:false}}}}});
+  renderDNA('Chennai');
+}
+
+function renderDNA(d) {
+  document.getElementById('dnaDistrictLabel').textContent=d;
+  const h=HOURLY[d]||Array.from({length:24},()=>80);
+  dnaBaseData=[...h];
+  if(dnaLoadChart){dnaLoadChart.data.datasets[0].data=h;dnaLoadChart.data.datasets[0].borderColor=dnaInjected?'#f87171':'#818cf8';dnaLoadChart.update();}
+  // FFT (simulated from real data)
+  const mean=h.reduce((s,v)=>s+v,0)/h.length;
+  const dc=mean;
+  const fftAmps=[dc-70,computeFFTComponent(h,1),computeFFTComponent(h,2),computeFFTComponent(h,4),computeFFTComponent(h,6),computeFFTComponent(h,12),computeFFTComponent(h,24),3+Math.random()*2,1.5+Math.random()];
+  if(fftChart){fftChart.data.datasets[0].data=fftAmps.map(v=>Math.round(v*100)/100);fftChart.update();}
+  renderHeatmap(d);
+  renderSimilarity(d);
+}
+
+function computeFFTComponent(data,period) {
+  let re=0,im=0;
+  data.forEach((v,i)=>{re+=v*Math.cos(2*Math.PI*i/period);im+=v*Math.sin(2*Math.PI*i/period);});
+  return Math.sqrt(re*re+im*im)/data.length;
+}
+
+function renderHeatmap(d) {
+  const canvas=document.getElementById('heatmapCanvas');
+  const months=MONTHLY[d]||Array.from({length:12},()=>80);
+  canvas.width=canvas.parentElement.offsetWidth||560;
+  canvas.height=60;
+  const ctx=canvas.getContext('2d');
+  const W=canvas.width,H=40;
+  const cellW=W/12;
+  const monthNames=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const min=Math.min(...months),max=Math.max(...months);
+  months.forEach((v,i)=>{
+    const t=(v-min)/(max-min);
+    const r=Math.round(t*200+55);const g=Math.round((1-t)*180+20);const b=60;
+    ctx.fillStyle=`rgb(${r},${g},${b})`;
+    ctx.fillRect(i*cellW,0,cellW-2,H);
+    ctx.fillStyle='rgba(255,255,255,0.7)';
+    ctx.font='9px sans-serif';ctx.textAlign='center';
+    ctx.fillText(v.toFixed(1)+'%',i*cellW+cellW/2,H/2+4);
+    ctx.fillStyle='#94a3b8';
+    ctx.fillText(monthNames[i],i*cellW+cellW/2,H+16);
+  });
+}
+
+function cosine(a,b) {
+  const dot=a.reduce((s,v,i)=>s+v*b[i],0);
+  const ma=Math.sqrt(a.reduce((s,v)=>s+v*v,0));
+  const mb=Math.sqrt(b.reduce((s,v)=>s+v*v,0));
+  return dot/(ma*mb);
+}
+
+function renderSimilarity(d) {
+  const h=HOURLY[d];
+  const sims=DISTRICTS.filter(x=>x!==d).map(x=>({name:x,sim:cosine(h||[],HOURLY[x]||[])})).sort((a,b)=>b.sim-a.sim).slice(0,5);
+  const el=document.getElementById('similarityList');
+  el.innerHTML='';
+  sims.forEach(({name,sim})=>{
+    const pct=(sim*100).toFixed(1);
+    const div=document.createElement('div');
+    div.className='similarity-bar';
+    div.innerHTML=`<span class="sim-name">${name}</span><div class="sim-track"><div class="sim-fill" style="width:${pct}%"></div></div><span class="sim-val">${pct}%</span>`;
+    el.appendChild(div);
+  });
+}
+
+function injectAnomaly() {
+  if(!dnaBaseData) return;
+  dnaInjected=true;
+  const anomaly=[...dnaBaseData];
+  anomaly[14]=anomaly[14]+18; anomaly[15]=anomaly[15]+22; anomaly[16]=anomaly[16]+15;
+  if(dnaLoadChart){dnaLoadChart.data.datasets[0].data=anomaly;dnaLoadChart.data.datasets[0].borderColor='#f87171';dnaLoadChart.update();}
+  document.getElementById('injectStatus').innerHTML='<span style="color:var(--danger)">⚡ Anomaly spike injected at 14:00–16:00. Load +22% above baseline. Possible equipment failure or sudden surge detected.</span>';
+}
+
+function injectTheft() {
+  if(!dnaBaseData) return;
+  dnaInjected=true;
+  const theft=[...dnaBaseData];
+  for(let i=0;i<24;i++) theft[i]=theft[i]+(i>6&&i<22?-6:0)+Math.random()*3;
+  if(dnaLoadChart){dnaLoadChart.data.datasets[0].data=theft;dnaLoadChart.data.datasets[0].borderColor='#fbbf24';dnaLoadChart.update();}
+  document.getElementById('injectStatus').innerHTML='<span style="color:var(--warn)">🔌 Electricity theft pattern: systematic −6% during working hours. Divergence from normal curve — alerts flagged.</span>';
+}
+
+function clearInjection() {
+  dnaInjected=false;
+  document.getElementById('injectStatus').innerHTML='';
+  renderDNA(selectedDNA);
+}
+
+// ═══════════════════════ PAGE 6: BLACKOUT SIM ═══════════════════════
+let blackoutInitDone=false;
+const GRID_NODES=[
+  {id:'Chennai',x:72,y:15,region:'north'},{id:'Tiruvallur',x:60,y:20,region:'north'},{id:'Kancheepuram',x:68,y:28,region:'north'},{id:'Chengalpattu',x:65,y:35,region:'north'},
+  {id:'Vellore',x:50,y:22,region:'north'},{id:'Ranipet',x:42,y:22,region:'north'},{id:'Tirupattur',x:40,y:32,region:'north'},{id:'Tiruvannamalai',x:55,y:38,region:'north'},
+  {id:'Salem',x:35,y:40,region:'west'},{id:'Namakkal',x:32,y:50,region:'west'},{id:'Erode',x:22,y:45,region:'west'},{id:'Tiruppur',x:18,y:55,region:'west'},
+  {id:'Coimbatore',x:12,y:60,region:'west'},{id:'Nilgiris',x:10,y:48,region:'west'},{id:'Dharmapuri',x:38,y:35,region:'west'},{id:'Krishnagiri',x:42,y:27,region:'west'},
+  {id:'Cuddalore',x:75,y:40,region:'delta'},{id:'Villupuram',x:68,y:42,region:'delta'},{id:'Kallakurichi',x:60,y:45,region:'delta'},{id:'Nagapattinam',x:82,y:55,region:'delta'},
+  {id:'Mayiladuthurai',x:78,y:52,region:'delta'},{id:'Pudukkottai',x:68,y:60,region:'delta'},{id:'Tiruchirappalli',x:55,y:57,region:'central'},{id:'Karur',x:45,y:57,region:'central'},
+  {id:'Madurai',x:52,y:70,region:'south'},{id:'Dindigul',x:42,y:68,region:'south'},{id:'Theni',x:38,y:75,region:'south'},{id:'Sivagangai',x:65,y:72,region:'south'},
+  {id:'Ramanathapuram',x:72,y:78,region:'south'},{id:'Virudhunagar',x:55,y:78,region:'south'},{id:'Thoothukudi',x:65,y:85,region:'south'},{id:'Tirunelveli',x:55,y:88,region:'south'},
+  {id:'Tenkasi',x:45,y:85,region:'south'},{id:'Kanniyakumari',x:52,y:95,region:'south'},{id:'Thanjavur',x:72,y:57,region:'delta'},{id:'Tiruvarur',x:78,y:60,region:'delta'},
+  {id:'Ariyalur',x:62,y:53,region:'central'},{id:'Perambalur',x:58,y:50,region:'central'}
+].filter(n=>n.y!==undefined);
+
+const EDGES=[['Chennai','Tiruvallur'],['Chennai','Kancheepuram'],['Kancheepuram','Chengalpattu'],['Tiruvallur','Vellore'],['Vellore','Ranipet'],['Ranipet','Tirupattur'],['Tirupattur','Dharmapuri'],['Dharmapuri','Salem'],['Salem','Namakkal'],['Namakkal','Erode'],['Erode','Tiruppur'],['Tiruppur','Coimbatore'],['Coimbatore','Nilgiris'],['Chengalpattu','Villupuram'],['Villupuram','Cuddalore'],['Cuddalore','Nagapattinam'],['Nagapattinam','Mayiladuthurai'],['Mayiladuthurai','Thanjavur'],['Thanjavur','Tiruchirappalli'],['Tiruchirappalli','Madurai'],['Madurai','Dindigul'],['Dindigul','Theni'],['Madurai','Sivagangai'],['Sivagangai','Ramanathapuram'],['Ramanathapuram','Thoothukudi'],['Thoothukudi','Tirunelveli'],['Tirunelveli','Tenkasi'],['Tenkasi','Kanniyakumari'],['Tiruvannamalai','Villupuram'],['Salem','Tiruchirappalli'],['Namakkal','Karur'],['Karur','Tiruchirappalli']];
+
+let nodeStatus={};
+let logLines=[];
+
+function initBlackout() {
+  blackoutInitDone=true;
+  GRID_NODES.forEach(n=>nodeStatus[n.id]='safe');
+  renderGridMap();
+}
+
+function renderGridMap() {
+  const map=document.getElementById('gridMap');
+  map.innerHTML='';
+  const W=map.offsetWidth||600, H=280;
+  // edges
+  EDGES.forEach(([a,b])=>{
+    const na=GRID_NODES.find(n=>n.id===a), nb=GRID_NODES.find(n=>n.id===b);
+    if(!na||!nb) return;
+    const x1=na.x/100*W, y1=na.y/100*H, x2=nb.x/100*W, y2=nb.y/100*H;
+    const len=Math.sqrt((x2-x1)**2+(y2-y1)**2);
+    const angle=Math.atan2(y2-y1,x2-x1)*180/Math.PI;
+    const aStatus=nodeStatus[a]||'safe', bStatus=nodeStatus[b]||'safe';
+    const cls=aStatus==='out'||bStatus==='out'?'out':aStatus==='danger'||bStatus==='danger'?'danger':'';
+    const edge=document.createElement('div');
+    edge.className=`edge ${cls}`;
+    edge.style.cssText=`left:${x1}px;top:${y1}px;width:${len}px;transform:rotate(${angle}deg);`;
+    map.appendChild(edge);
+  });
+  // nodes
+  GRID_NODES.forEach(n=>{
+    const st=nodeStatus[n.id]||'safe';
+    const dot=document.createElement('div');
+    dot.className=`node ${st}`;
+    dot.style.cssText=`left:${n.x}%`;
+    dot.style.top=`${n.y}%`;
+    dot.title=`${n.id}: ${st}`;
+    map.appendChild(dot);
+    const lbl=document.createElement('div');
+    lbl.className='node-label';
+    lbl.style.cssText=`left:${n.x}%;top:${n.y}%`;
+    lbl.textContent=n.id.slice(0,4);
+    map.appendChild(lbl);
+  });
+}
+
+function addLog(msg,cls='log-event') {
+  const now=new Date();
+  const t=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  const el=document.getElementById('blackoutLog');
+  const line=document.createElement('div');
+  line.className='log-line';
+  line.innerHTML=`<span class="log-time">[${t}]</span> <span class="${cls}">${msg}</span>`;
+  el.appendChild(line);
+  el.scrollTop=el.scrollHeight;
+}
+
+function triggerDisaster(type) {
+  document.getElementById('blackoutLog').innerHTML='';
+  GRID_NODES.forEach(n=>nodeStatus[n.id]='safe');
+  const scenarios={
+    cyclone:{
+      title:'🌀 CYCLONE — Cuddalore / Nagapattinam',
+      affected:['Cuddalore','Nagapattinam','Mayiladuthurai','Villupuram','Tiruvarur'],
+      outage:['Cuddalore','Nagapattinam'],
+      pop:'2.1M',shed:'340 MW',eta:'6-18 hours',
+      steps:[
+        ['Cyclone makes landfall at Cuddalore coast','log-danger'],
+        ['Transmission line L32 (Cuddalore–Villupuram) FAILED','log-danger'],
+        ['Nagapattinam substation OVERLOADED (114%)','log-warn'],
+        ['Power automatically rerouted via Thanjavur corridor','log-info'],
+        ['Mayiladuthurai running on 60% backup capacity','log-warn'],
+        ['AI activates emergency shed: 340 MW curtailed','log-info'],
+        ['Dijkstra route: Tiruchirappalli→Thanjavur→Nagapattinam','log-safe'],
+        ['Estimated restoration: 6–18 hours post-landfall','log-info']
+      ],
+      route:`<div class="route-step">Step 1:</div> <div class="route-arrow">  Cuddalore offline → reroute via Villupuram</div>
+<div class="route-step">Step 2:</div> <div class="route-arrow">  Thanjavur ──▶ Tiruvarur ──▶ Nagapattinam</div>
+<div class="route-step">Step 3:</div> <div class="route-arrow">  Tiruchirappalli ──▶ Thanjavur (backup feed)</div>
+<div class="route-step">Step 4:</div> <div class="route-arrow">  Load shed 340MW from non-critical zones</div>
+<div class="route-step">Recovery:</div> <div class="route-arrow">  Estimated: 6–18 hours | Priority: hospitals, water</div>
+<br><span style="color:var(--muted);font-size:10px;">Dijkstra path cost: 4 hops | Alt path: 6 hops | Δcost: +2 hops</span>`
+    },
+    heatwave:{
+      title:'🔥 HEATWAVE +8°C — Statewide Demand Surge',
+      affected:['Chennai','Coimbatore','Madurai','Salem','Tiruchirappalli','Erode'],
+      outage:[],
+      pop:'12.4M',shed:'820 MW',eta:'Until temperature drops',
+      steps:[
+        ['Ambient temperature spikes to 42°C statewide','log-warn'],
+        ['AC demand surge: +28% above normal baseline','log-warn'],
+        ['Chennai load: 96% | Coimbatore: 94% | Madurai: 92%','log-warn'],
+        ['Transformer temperatures rising: avg 72°C','log-danger'],
+        ['Emergency peak demand response activated','log-info'],
+        ['Demand response signals sent to 12,000 consumers','log-info'],
+        ['Wind power dispatch increased: +180 MW from Muppandal','log-safe'],
+        ['System stabilized at 89% avg. Monitoring continues.','log-info']
+      ],
+      route:`<div class="route-step">Demand Response Plan:</div>
+<div class="route-arrow">  Industrial consumers → reduce load 15%</div>
+<div class="route-arrow">  AC setpoints raised 2°C across 50,000 units</div>
+<div class="route-step">Generation Dispatch:</div>
+<div class="route-arrow">  Mettur dam: +200 MW hydro (if available)</div>
+<div class="route-arrow">  Muppandal wind: +180 MW</div>
+<div class="route-arrow">  NTPC bilateral: request +400 MW</div>
+<div class="route-step">Recovery:</div>
+<div class="route-arrow">  Until temperature below 38°C | Est: 16:00 hrs</div>`
+    },
+    transformer:{
+      title:'⚡ TRANSFORMER FAILURE — Line L32 / Erode',
+      affected:['Erode','Namakkal','Tiruppur'],
+      outage:['Erode'],
+      pop:'0.8M',shed:'180 MW',eta:'4-8 hours',
+      steps:[
+        ['Transformer TR_8045 (Erode) — thermal runaway detected','log-danger'],
+        ['Temperature: 87°C | Protection relay triggered at 85°C','log-warn'],
+        ['Erode substation OFFLINE — 2249 overloads in past year','log-danger'],
+        ['Auto-switching to Namakkal backup feeder','log-info'],
+        ['Tiruppur partially affected — running at 95%','log-warn'],
+        ['Replacement transformer en route — ETA: 4 hours','log-info'],
+        ['Load redistributed: Erode consumers on 6h rotating cuts','log-warn'],
+        ['System stability maintained via Salem corridor','log-safe']
+      ],
+      route:`<div class="route-step">Failure Analysis:</div>
+<div class="route-arrow">  TR_8045: Age 24yr | Temp 87°C | 10 overloads</div>
+<div class="route-arrow">  Weibull RUL was: 22 days (PREDICTED)</div>
+<div class="route-step">Reroute:</div>
+<div class="route-arrow">  Erode load → Salem substation SS_SALE</div>
+<div class="route-arrow">  Salem → Namakkal → partial Erode coverage</div>
+<div class="route-step">Restoration:</div>
+<div class="route-arrow">  Replacement: 4h | Full restore: 6-8h</div>
+<span style="color:var(--muted);font-size:10px;">This failure was predictable — AI predicted 78% fail prob</span>`
+    },
+    shutdown:{
+      title:'🏭 POWER PLANT SHUTDOWN — 800MW North Grid',
+      affected:['Chennai','Tiruvallur','Kancheepuram','Chengalpattu','Vellore'],
+      outage:[],
+      pop:'7.2M',shed:'800 MW',eta:'2-6 hours',
+      steps:[
+        ['NPKK Plant Unit 3 — emergency shutdown (boiler fault)','log-danger'],
+        ['Sudden 800 MW deficit in northern Tamil Nadu grid','log-danger'],
+        ['Frequency drop: 50.0 Hz → 49.3 Hz (critical: <49.0)','log-warn'],
+        ['Under-frequency load shedding activated (3 feeders)','log-warn'],
+        ['Kundankulam Nuclear provides emergency 300 MW injection','log-info'],
+        ['Karnataka bilateral power: +200 MW requested','log-info'],
+        ['Chennai demand response: -150 MW from large consumers','log-info'],
+        ['Frequency recovering: 49.3 → 49.8 Hz | Stable','log-safe']
+      ],
+      route:`<div class="route-step">Frequency Recovery:</div>
+<div class="route-arrow">  Deficit: −800 MW | Auto-shed: −150 MW</div>
+<div class="route-arrow">  Kundankulam inject: +300 MW</div>
+<div class="route-arrow">  Karnataka bilateral: +200 MW</div>
+<div class="route-step">Restoration:</div>
+<div class="route-arrow">  NPKK Unit 3 restart ETA: 2-6 hours</div>
+<div class="route-arrow">  Net deficit after response: −150 MW (manageable)</div>
+<span style="color:var(--muted);font-size:10px;">Grid frequency maintained. System operator TANGEDCO alerted.</span>`
+    }
+  };
+  const s=scenarios[type];
+  addLog(`DISASTER TRIGGERED: ${s.title}`,'log-danger');
+  s.affected.forEach(d=>nodeStatus[d]='danger');
+  s.outage.forEach(d=>nodeStatus[d]='out');
+  renderGridMap();
+  let delay=0;
+  s.steps.forEach(([msg,cls])=>{ setTimeout(()=>addLog(msg,cls),delay+=600); });
+  document.getElementById('impAffected').textContent=s.affected.length;
+  document.getElementById('impPop').textContent=s.pop;
+  document.getElementById('impShed').textContent=s.shed;
+  document.getElementById('impETA').textContent=s.eta;
+  document.getElementById('routePlan').innerHTML=s.route;
+}
+
+// ═══════════════════════ PAGE 7: TRANSFORMER ═══════════════════════
+let tfInitDone=false;
+
+function initTransformer() {
+  tfInitDone=true;
+  updateTFPred();
+  renderTFCharts();
+  const highRiskEl=document.getElementById('tfHighRisk');
+  const highRisk=[
+    {id:8045,district:'Chengalpattu',age:24,overloads:10,temp:82.4,rul:22,prob:89},
+    {id:7195,district:'Chengalpattu',age:18,overloads:9,temp:82.8,rul:38,prob:76},
+    {id:4974,district:'Kancheepuram',age:22,overloads:9,temp:83.3,rul:28,prob:82},
+    {id:6049,district:'Tiruvallur',age:15,overloads:9,temp:82.0,rul:45,prob:68},
+    {id:3339,district:'Tiruvallur',age:19,overloads:8,temp:83.0,rul:35,prob:74}
+  ];
+  highRisk.forEach(tr=>{
+    const pct=(tr.rul/200*100).toFixed(0);
+    const col=tr.prob>80?'var(--danger)':tr.prob>60?'var(--warn)':'var(--safe)';
+    const div=document.createElement('div');
+    div.style.cssText='padding:8px 0;border-bottom:1px solid var(--border);';
+    div.innerHTML=`<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span>TR_${tr.id} · ${tr.district}</span><span style="color:${col};font-weight:700;">${tr.prob}% fail</span></div>
+<div style="font-size:10px;color:var(--muted);">Age ${tr.age}yr · ${tr.overloads} overloads · ${tr.temp}°C</div>
+<div class="prob-bar" style="margin-top:4px;"><div class="prob-fill" style="width:${tr.prob}%;background:${col};"></div></div>
+<div style="font-size:10px;color:var(--muted);">RUL: <strong style="color:${col};">${tr.rul} days</strong></div>`;
+    highRiskEl.appendChild(div);
+  });
+}
+
+function updateTFPred() {
+  const age=+document.getElementById('tfAge').value;
+  const temp=+document.getElementById('tfTemp').value;
+  const overloads=+document.getElementById('tfOverload').value;
+  const faults=+document.getElementById('tfFaults').value;
+  document.getElementById('tfAgeVal').textContent=age;
+  document.getElementById('tfTempVal').textContent=temp+'°C';
+  document.getElementById('tfOverloadVal').textContent=overloads;
+  document.getElementById('tfFaultsVal').textContent=faults;
+  // Weibull-inspired model
+  const eta=Math.max(20, 200-age*4-overloads*2);
+  const beta=1.5+(temp-50)/40;
+  const rul=Math.round(eta*Math.exp(-Math.pow(0.7,beta)));
+  const failProb=Math.min(98,Math.round(age*2.2+overloads*1.2+(temp-50)*0.5+faults*1.5));
+  const risk=failProb>80?'Critical':failProb>60?'High':failProb>40?'Medium':'Low';
+  const action=failProb>80?'Replace NOW':failProb>60?'Inspect':failProb>40?'Monitor':'Normal';
+  document.getElementById('tfRUL').textContent=rul;
+  document.getElementById('tfRUL').style.color=rul<50?'var(--danger)':rul<100?'var(--warn)':'var(--safe)';
+  document.getElementById('tfProb').textContent=failProb+'%';
+  document.getElementById('tfProb').style.color=failProb>80?'var(--danger)':failProb>60?'var(--warn)':'var(--safe)';
+  document.getElementById('tfRisk').textContent=risk;
+  document.getElementById('tfAction').textContent=action;
+  document.getElementById('tfProbFill').style.width=failProb+'%';
+}
+
+function renderTFCharts() {
+  const aCtx=document.getElementById('tfAgeChart').getContext('2d');
+  const ages=Array.from({length:30},(_,i)=>i+1);
+  const probs=ages.map(a=>Math.min(98,a*2.2+8*1.2+15*0.5+3*1.5));
+  new Chart(aCtx,{type:'line',data:{labels:ages,datasets:[{label:'Fail Prob %',data:probs,borderColor:'#f87171',borderWidth:2,fill:true,backgroundColor:'rgba(248,113,113,0.1)',tension:0.4,pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{min:0,max:100,ticks:{color:'#94a3b8',font:{size:10}},grid:{color:'rgba(255,255,255,0.05)'}},x:{title:{display:true,text:'Age (years)',color:'#94a3b8',font:{size:9}},ticks:{color:'#94a3b8',font:{size:9}},grid:{display:false}}}}});
+  const mCtx=document.getElementById('tfMatrixChart').getContext('2d');
+  const matData=[];
+  for(let t=35;t<=85;t+=10) for(let o=0;o<=40;o+=8) matData.push({x:o,y:t,r:Math.min(20,Math.max(3,(t-35)*0.3+o*0.3))});
+  new Chart(mCtx,{type:'bubble',data:{datasets:[{label:'Risk',data:matData,backgroundColor:matData.map(d=>d.r>12?'rgba(248,113,113,0.6)':d.r>7?'rgba(251,191,36,0.5)':'rgba(52,211,153,0.4)')}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{title:{display:true,text:'Overloads',color:'#94a3b8',font:{size:9}},ticks:{color:'#94a3b8',font:{size:9}},grid:{color:'rgba(255,255,255,0.05)'}},y:{title:{display:true,text:'Temp °C',color:'#94a3b8',font:{size:9}},ticks:{color:'#94a3b8',font:{size:9}},grid:{color:'rgba(255,255,255,0.05)'}}}}});
+  const rCtx=document.getElementById('tfRULChart').getContext('2d');
+  const rulBins=['0-30','31-60','61-90','91-120','121-150','151-180','181+'];
+  const rulCounts=[12,28,45,62,85,73,27];
+  new Chart(rCtx,{type:'bar',data:{labels:rulBins,datasets:[{label:'Transformers',data:rulCounts,backgroundColor:'rgba(56,189,248,0.5)',borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{color:'#94a3b8',font:{size:9}},grid:{color:'rgba(255,255,255,0.05)'}},x:{ticks:{color:'#94a3b8',font:{size:9}},grid:{display:false}}}}});
+}
+
+// ═══════════════════════ PAGE 8: FESTIVAL ═══════════════════════
+let festInitDone=false,festivalChart,sarimaChart,clusterChart;
+const FESTIVALS=[
+  {name:'Pongal',icon:'🌾',date:'Jan 14–15',month:1,boost:5.2,color:'#fbbf24',desc:'Major harvest festival — cooking, lighting, celebrations statewide'},
+  {name:'Thai Pusam',icon:'🕉️',date:'Jan 29',month:1,boost:3.8,color:'#818cf8',desc:'Temple festival — Palani, Tiruvannamalai see massive loads'},
+  {name:'Ugadi',icon:'🌸',date:'Mar 30',month:3,boost:3.1,color:'#34d399',desc:'New Year celebrations — moderate surge in urban areas'},
+  {name:'Tamil New Year',icon:'🪕',date:'Apr 14',month:4,boost:4.0,color:'#34d399',desc:'Puthandu celebrations — household cooking and family gatherings spike load'},
+  {name:'IPL Finals',icon:'🏏',date:'May (var)',month:5,boost:6.8,color:'#60a5fa',desc:'Cricket viewership surge — TVs, AC, restaurants all spike'},
+  {name:'Summer Peak',icon:'☀️',date:'Apr–Jun',month:5,boost:8.5,color:'#f97316',desc:'Maximum AC usage — highest annual load period'},
+  {name:'Aadi Perukku',icon:'🌊',date:'Aug 3',month:8,boost:2.6,color:'#38bdf8',desc:'River festival across delta districts — mid-range cooking/lighting surge'},
+  {name:'Vinayagar Chaturthi',icon:'🐘',date:'Aug/Sep',month:9,boost:4.6,color:'#fb923c',desc:'Pandal lighting and processions statewide — evening peak intensifies'},
+  {name:'Navaratri',icon:'🪔',date:'Sep/Oct',month:10,boost:5.5,color:'#818cf8',desc:'Nine nights of lighting and Golu displays — sustained evening surge'},
+  {name:'Diwali',icon:'🪔',date:'Oct/Nov',month:10,boost:7.1,color:'#fbbf24',desc:'Lighting, firecrackers, cooking — massive evening spike'},
+  {name:'Election Day',icon:'🗳️',date:'Variable',month:4,boost:-4.2,color:'#94a3b8',desc:'Industrial holiday declared — load drops 4–8%'},
+  {name:'Cyclone',icon:'🌀',date:'Oct–Dec',month:11,boost:12.0,color:'#f87171',desc:'Emergency demand + outages — extreme grid stress'},
+  {name:'Chennai Rain',icon:'🌧️',date:'Nov–Dec',month:11,boost:-2.1,color:'#38bdf8',desc:'Overcast, cooler — AC demand drops; industrial affected'},
+  {name:'Karthigai Deepam',icon:'🔥',date:'Dec 5',month:12,boost:4.3,color:'#fb923c',desc:'Temple festival — Tiruvannamalai beacon; lighting surge'}
+];
+
+function initFestival() {
+  festInitDone=true;
+  const grid=document.getElementById('festivalGrid');
+  FESTIVALS.forEach(f=>{
+    const div=document.createElement('div');
+    div.className='festival-card';
+    div.title=f.desc;
+    const boostColor=f.boost>0?'var(--danger)':'var(--safe)';
+    const peakLoad=80+f.boost*1.4;
+    const cardSt=getStatus(peakLoad);
+    div.innerHTML=`<div class="festival-icon">${f.icon}</div><div class="festival-name">${f.name}</div><div class="festival-date">${f.date}</div><div class="festival-load" style="color:${boostColor}">${f.boost>0?'+':''}${f.boost}%</div><div style="margin-top:6px;"><span class="badge badge-${cardSt}" style="font-size:9px;">${cardSt}</span></div>`;
+    div.onclick=()=>selectFestival(f,div);
+    grid.appendChild(div);
+  });
+  const lCtx=document.getElementById('festivalChart').getContext('2d');
+  festivalChart=new Chart(lCtx,{type:'line',data:{labels:Array.from({length:24},(_,i)=>`${i}:00`),datasets:[{label:'Normal',data:[],borderColor:'#475569',borderWidth:1.5,borderDash:[4,3],fill:false,tension:0.4,pointRadius:0},{label:'Festival',data:[],borderColor:'#fbbf24',borderWidth:2.5,fill:true,backgroundColor:'rgba(251,191,36,0.1)',tension:0.4,pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{min:70,max:110,ticks:{color:'#94a3b8',font:{size:10}},grid:{color:'rgba(255,255,255,0.05)'}},x:{ticks:{color:'#94a3b8',font:{size:10}},grid:{display:false}}}}});
+  const sCtx=document.getElementById('sarimaChart').getContext('2d');
+  sarimaChart=new Chart(sCtx,{type:'bar',data:{labels:['Trend','Seasonal','Cyclical','Event Effect','Residual'],datasets:[{label:'Component',data:[79,2.1,1.4,5.2,0.3],backgroundColor:['rgba(56,189,248,0.6)','rgba(129,140,248,0.6)','rgba(52,211,153,0.5)','rgba(251,191,36,0.7)','rgba(148,163,184,0.5)'],borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{color:'#94a3b8',font:{size:10}},grid:{color:'rgba(255,255,255,0.05)'}},x:{ticks:{color:'#94a3b8',font:{size:10}},grid:{display:false}}}}});
+  const cCtx=document.getElementById('clusterChart').getContext('2d');
+  const clusters=[
+    {label:'Urban Industrial',data:[{x:8.2,y:82,r:12}],bg:'rgba(248,113,113,0.6)'},
+    {label:'Coastal',data:[{x:6.1,y:80,r:10}],bg:'rgba(56,189,248,0.6)'},
+    {label:'Agricultural',data:[{x:4.8,y:78,r:8}],bg:'rgba(52,211,153,0.6)'},
+    {label:'Tribal/Hilly',data:[{x:3.2,y:76,r:6}],bg:'rgba(251,191,36,0.5)'}
+  ];
+  clusterChart=new Chart(cCtx,{type:'bubble',data:{datasets:clusters.map(c=>({label:c.label,data:c.data,backgroundColor:c.bg}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8',font:{size:10},boxWidth:10}}},scales:{x:{title:{display:true,text:'Event Sensitivity Index',color:'#94a3b8',font:{size:10}},ticks:{color:'#94a3b8',font:{size:9}},grid:{color:'rgba(255,255,255,0.05)'}},y:{title:{display:true,text:'Avg Load %',color:'#94a3b8',font:{size:10}},ticks:{color:'#94a3b8',font:{size:9}},grid:{color:'rgba(255,255,255,0.05)'}}}}});
+  selectFestival(FESTIVALS[0],grid.children[0]);
+}
+
+function selectFestival(f,el) {
+  document.querySelectorAll('.festival-card').forEach(c=>c.classList.remove('active'));
+  if(el) el.classList.add('active');
+  document.getElementById('festivalLabel').textContent=f.name+' '+f.icon;
+  const baseMonthly=MONTHLY['Chennai']||Array.from({length:12},()=>80);
+  const base=HOURLY['Chennai']||Array.from({length:24},()=>80);
+  const festival=base.map((v,i)=>{
+    const timeMultiplier=i>=17&&i<=22?1.4:i>=8&&i<=12?1.1:1.0;
+    return +(v+f.boost*timeMultiplier).toFixed(1);
+  });
+  if(festivalChart){
+    festivalChart.data.datasets[0].data=base;
+    festivalChart.data.datasets[1].data=festival;
+    festivalChart.data.datasets[1].borderColor=f.color;
+    festivalChart.data.datasets[1].backgroundColor=f.color.replace(')',',0.1)').replace('rgb','rgba');
+    festivalChart.update();
+  }
+  if(sarimaChart){
+    sarimaChart.data.datasets[0].data=[79,2.1,1.4,Math.abs(f.boost),0.3];
+    sarimaChart.update();
+  }
+  // Risk tone: positive boost → warn/danger tone scaled to magnitude, negative boost → calm safe tone
+  const peakLoad=80+f.boost*1.4;
+  const st=getStatus(peakLoad);
+  playRiskTone(st, Math.min(1,Math.abs(f.boost)/12));
+  renderFestivalDistrictGrid(f);
+}
+
+function renderFestivalDistrictGrid(f){
+  const grid=document.getElementById('festDistrictGrid');
+  if(!grid) return;
+  grid.innerHTML='';
+  DISTRICTS.forEach(d=>{
+    const data=DIST_DATA[d];
+    const projected=Math.min(120, data.avg + f.boost);
+    const st=getStatus(projected);
+    const col=statusColor(st);
+    const div=document.createElement('div');
+    div.className=`dist-row ${st}`;
+    div.innerHTML=`<div><div class="dist-name">${d}</div><div style="font-size:10px;color:var(--muted);">base ${data.avg.toFixed(1)}% → projected</div></div><div class="dist-load" style="color:${col}">${projected.toFixed(1)}%</div>`;
+    div.onclick=()=>playRiskTone(st, Math.min(1,Math.abs(f.boost)/12)*0.8,{volume:0.12,doublePulse:false});
+    grid.appendChild(div);
+  });
+}
+
+function activateFestivalSurge(){
+  const active=document.querySelector('.festival-card.active');
+  const f=active ? FESTIVALS[Array.from(document.querySelectorAll('.festival-card')).indexOf(active)] : FESTIVALS[0];
+  let danger=0,warn=0,safe=0;
+  DISTRICTS.forEach(d=>{
+    const projected=Math.min(120, DIST_DATA[d].avg + f.boost);
+    const st=getStatus(projected);
+    if(st==='danger') danger++; else if(st==='warn') warn++; else safe++;
+  });
+  const summary=document.getElementById('festSurgeSummary');
+  summary.innerHTML=`<span style="color:var(--danger)">${danger} danger</span> · <span style="color:var(--warn)">${warn} warning</span> · <span style="color:var(--safe)">${safe} safe</span>`;
+  renderFestivalDistrictGrid(f);
+  // Sequenced sound: a rising sequence of alerts proportional to how many districts tip into danger
+  if(danger>0){
+    playCrisisSiren(Math.min(1, danger/15));
+  } else if(warn>0){
+    playRiskTone('warn', Math.min(1,warn/15));
+  } else {
+    playRiskTone('safe', 0.4);
+  }
+}
+
+// ═══════════════════════ PAGE 9: CARBON ═══════════════════════
+let carbonInitDone=false,carbonChart;
+
+function initCarbon() {
+  carbonInitDone=true;
+  renderSourceBar();
+  const cCtx=document.getElementById('carbonChart').getContext('2d');
+  carbonChart=new Chart(cCtx,{type:'bar',data:{labels:['Current Mix','LP Optimal','Wind Max','Nuclear+Wind'],datasets:[{label:'CO₂ tons/hr',data:[820,540,420,380],backgroundColor:['rgba(248,113,113,0.7)','rgba(251,191,36,0.6)','rgba(52,211,153,0.6)','rgba(56,189,248,0.6)'],borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{color:'#94a3b8',font:{size:10}},grid:{color:'rgba(255,255,255,0.05)'}},x:{ticks:{color:'#94a3b8',font:{size:10}},grid:{display:false}}}}});
+  updateCarbon();
+}
+
+function updateCarbon() {
+  const coal=+document.getElementById('slCoal').value;
+  const wind=+document.getElementById('slWind').value;
+  const solar=+document.getElementById('slSolar').value;
+  const nuclear=+document.getElementById('slNuclear').value;
+  document.getElementById('valCoal').textContent=coal+'%';
+  document.getElementById('valWind').textContent=wind+'%';
+  document.getElementById('valSolar').textContent=solar+'%';
+  document.getElementById('valNuclear').textContent=nuclear+'%';
+  const total=coal+wind+solar+nuclear;
+  const warn=document.getElementById('mixWarning');
+  warn.textContent=Math.abs(total-100)>2?`⚠ Mix sums to ${total}% (should be ~100%)`:total===100?'✓ Mix balanced':'' ;
+  const carbon=(coal*820+wind*7+solar*48+nuclear*12)/100;
+  document.getElementById('carbonVal').textContent=Math.round(carbon);
+  document.getElementById('carbonVal').style.color=carbon>600?'var(--danger)':carbon>400?'var(--warn)':'var(--safe)';
+  renderSourceBar();
+  const advice=document.getElementById('carbonAdvice');
+  const savings=((820-carbon)/820*100).toFixed(1);
+  advice.innerHTML=coal>50?`<strong style="color:var(--danger)">Coal dominance (${coal}%)</strong> — increase wind/solar to cut emissions.<br>Reduce coal by 30% → save ~${(carbon*0.3).toFixed(0)} tons CO₂/hr<br><span style="color:var(--safe)">Potential reduction: ${savings}% from baseline</span>`:`<strong style="color:var(--safe)">Good mix!</strong> Carbon reduced by <strong>${savings}%</strong> from coal baseline.<br>Tamil Nadu wind potential: 5,000+ MW untapped in Tirunelveli corridor.`;
+  document.getElementById('lpNote').innerHTML=`LP Objective: min Σ cᵢ·xᵢ (emissions × generation)<br>Subject to: Σxᵢ = D (meet demand)<br>xᵢ ≥ 0, coal ≤ 0.6·D (policy constraint)<br>Solution: coal=${coal}%, wind=${wind}%, solar=${solar}%, nuclear=${nuclear}%<br>Shadow price of coal constraint: ${(coal>60?'binding — reduce coal':'slack').toString()}`;
+}
+
+function renderSourceBar() {
+  const coal=+document.getElementById('slCoal').value;
+  const wind=+document.getElementById('slWind').value;
+  const solar=+document.getElementById('slSolar').value;
+  const nuclear=+document.getElementById('slNuclear').value;
+  const sources=[['Coal','#f87171',coal,820],['Wind','#34d399',wind,7],['Solar','#fbbf24',solar,48],['Nuclear','#818cf8',nuclear,12]];
+  const el=document.getElementById('sourceBar');
+  el.innerHTML=sources.map(([n,c,v,ef])=>`<div class="source-row"><span style="min-width:60px;font-size:12px;">${n}</span><div class="source-track"><div class="source-fill" style="width:${v}%;background:${c};"></div></div><span class="source-pct" style="color:${c}">${v}%</span><span style="font-size:10px;color:var(--muted);min-width:60px;text-align:right;">${ef}g CO₂/kWh</span></div>`).join('');
+}
+
+function runLPOptimizer() {
+  document.getElementById('slCoal').value=35;document.getElementById('valCoal').textContent='35%';
+  document.getElementById('slWind').value=40;document.getElementById('valWind').textContent='40%';
+  document.getElementById('slSolar').value=20;document.getElementById('valSolar').textContent='20%';
+  document.getElementById('slNuclear').value=5;document.getElementById('valNuclear').textContent='5%';
+  updateCarbon();
+}
+
+// ═══════════════════════ PAGE 10: CRISIS ═══════════════════════
+let crisisInitDone=false,crisisActive=false,crisisCascadeChart,crisisImpactChart;
+
+function initCrisis() {
+  crisisInitDone=true;
+  const iCtx=document.getElementById('crisisImpactChart').getContext('2d');
+  const topAffected=['Cuddalore','Nagapattinam','Chennai','Tiruvallur','Vellore','Kancheepuram','Chengalpattu','Villupuram'];
+  crisisImpactChart=new Chart(iCtx,{type:'bar',data:{labels:topAffected,datasets:[{label:'Load Stress',data:topAffected.map(d=>DIST_DATA[d].avg+Math.random()*5),backgroundColor:'rgba(248,113,113,0.6)',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{min:70,max:120,ticks:{color:'#94a3b8',font:{size:10}},grid:{color:'rgba(255,255,255,0.05)'}},x:{ticks:{color:'#94a3b8',font:{size:9}},grid:{display:false}}}}});
+  const cCtx=document.getElementById('crisisCascadeChart').getContext('2d');
+  crisisCascadeChart=new Chart(cCtx,{type:'line',data:{labels:Array.from({length:24},(_,i)=>`T+${i}h`),datasets:[{label:'TN Grid Load',data:Array.from({length:24},()=>80),borderColor:'#38bdf8',borderWidth:2,fill:true,backgroundColor:'rgba(56,189,248,0.1)',tension:0.4,pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{min:50,max:115,ticks:{color:'#94a3b8',font:{size:10}},grid:{color:'rgba(255,255,255,0.05)'}},x:{ticks:{color:'#94a3b8',font:{size:9},maxTicksLimit:8},grid:{display:false}}}}});
+}
+
+function activateCrisis(type) {
+  if(!type) type='cyclone';
+  crisisActive=true;
+  const CRISIS_SCENARIOS={
+    cyclone:{
+      affected:'7',pop:'4.2M',load:'580 MW',
+      timeline:[
+        ['⚠','T+0h: Category 4 Cyclone detected 80km off Cuddalore coast','var(--danger)'],
+        ['📡','T+1h: TANGEDCO emergency protocol activated','var(--warn)'],
+        ['⚡','T+2h: Cuddalore & Nagapattinam substations pre-emptively shed load','var(--warn)'],
+        ['🌀','T+3h: Cyclone landfall — L32 transmission line FAILED','var(--danger)'],
+        ['🔀','T+4h: AI reroutes power via Thanjavur–Tiruvarur corridor','var(--accent)'],
+        ['📊','T+6h: 580 MW shed · 4.2M affected · Frequency stable at 49.7Hz','var(--warn)'],
+        ['🔧','T+12h: Repair crews mobilized to 3 key substations','var(--safe)'],
+        ['✅','T+24h: 70% restoration · Remaining 30% estimated +12h','var(--safe)']
+      ],
+      cascade:[80,80,82,85,110,108,112,106,98,90,85,82,80,79,78,78,79,80,80,81,81,80,80,80],
+      route:`<div class="route-step">Dijkstra Recovery (shortest-path, capacity-weighted):</div>
+<div class="route-arrow">  Priority 1: Hospitals, water → Thanjavur feeder</div>
+<div class="route-arrow">  Cuddalore ✗ offline → bypass via Villupuram</div>
+<div class="route-arrow">  Primary: Thanjavur→Tiruvarur→Nagapattinam [2 hops]</div>
+<div class="route-arrow">  Backup: Salem→Tiruchirappalli→Thanjavur [4 hops]</div>
+<br><span style="color:var(--muted);font-size:10px;">P(outage|cyclone)=0.73 · P(path failure)=0.31</span>`
+    },
+    heatwave:{
+      affected:'12',pop:'18.4M',load:'820 MW',
+      timeline:[
+        ['🌡️','T+0h: Ambient temperature spikes to 45°C statewide','var(--danger)'],
+        ['⚡','T+1h: AC demand surge +35% above baseline across all 38 districts','var(--warn)'],
+        ['🔴','T+2h: Chennai 98% · Coimbatore 96% · Madurai 94%','var(--danger)'],
+        ['🌡️','T+3h: Transformer temperatures rising: avg 78°C (critical: 85°C)','var(--warn)'],
+        ['📡','T+4h: Emergency peak demand response activated statewide','var(--accent)'],
+        ['💨','T+5h: Wind dispatch +180 MW from Muppandal corridor','var(--safe)'],
+        ['🏭','T+6h: NTPC bilateral: +400 MW requested from northern grid','var(--info)'],
+        ['✅','T+8h: System stabilized at 88% avg. Monitoring continues.','var(--safe)']
+      ],
+      cascade:[80,82,85,88,98,102,104,100,96,92,89,87,85,84,83,82,81,80,80,81,82,83,82,81],
+      route:`<div class="route-step">Demand Response Plan:</div>
+<div class="route-arrow">  Industrial consumers → reduce load 15%</div>
+<div class="route-arrow">  AC setpoints raised 2°C across 50,000 units</div>
+<div class="route-step">Generation Dispatch:</div>
+<div class="route-arrow">  Mettur dam: +200 MW hydro</div>
+<div class="route-arrow">  Muppandal wind: +180 MW</div>
+<div class="route-arrow">  NTPC bilateral: +400 MW</div>
+<br><span style="color:var(--muted);font-size:10px;">Regression: ΔLoad = 2.8×ΔTemp + 0.4×EV_pct + ε</span>`
+    },
+    tsunami:{
+      affected:'9',pop:'5.8M',load:'420 MW',
+      timeline:[
+        ['🌊','T+0h: Indian Ocean seismic event — Tsunami warning issued','var(--danger)'],
+        ['🔴','T+1h: Coastal districts pre-emptive shutdown: Nagapattinam, Cuddalore, Thoothukudi','var(--danger)'],
+        ['⚡','T+2h: Substation SS_NAGA flooded — total offline','var(--danger)'],
+        ['🔀','T+3h: AI isolates coastal feeders to prevent cascade','var(--accent)'],
+        ['📡','T+4h: Emergency grid islanding — coastal zones separated','var(--warn)'],
+        ['🔧','T+6h: Inland grid stable — redistributing to unaffected zones','var(--safe)'],
+        ['🏥','T+8h: Priority restoration: hospitals, shelters, water pumps','var(--info)'],
+        ['✅','T+48h: 60% coastal restoration via temporary substations','var(--safe)']
+      ],
+      cascade:[80,78,72,65,60,58,60,64,68,72,75,76,77,78,79,80,80,80,79,78,78,79,80,80],
+      route:`<div class="route-step">Coastal Isolation Protocol:</div>
+<div class="route-arrow">  Nagapattinam ✗ flooded → offline 48h+</div>
+<div class="route-arrow">  Cuddalore ✗ → reroute via Villupuram inland</div>
+<div class="route-step">Recovery Path (Dijkstra min-cost):</div>
+<div class="route-arrow">  Inland: Tiruchirappalli→Thanjavur→Tiruvarur [3 hops]</div>
+<div class="route-arrow">  Priority: shelters, hospitals, drinking water</div>
+<br><span style="color:var(--muted);font-size:10px;">Max-flow cut: coastal capacity=0 → inland reroute capacity=320MW</span>`
+    },
+    cascade:{
+      affected:'6',pop:'3.1M',load:'360 MW',
+      timeline:[
+        ['⚡','T+0h: TR_8045 Chengalpattu — thermal runaway at 89°C','var(--danger)'],
+        ['🔴','T+0h: Protection relay cascade — 3 adjacent transformers tripped','var(--danger)'],
+        ['⚠️','T+1h: Erode + Namakkal + Tiruppur on backup feeders','var(--warn)'],
+        ['📊','T+1h: Weibull model had flagged TR_8045 — RUL was 22 days','var(--accent)'],
+        ['🔀','T+2h: Salem substation absorbs 60% of Erode load','var(--warn)'],
+        ['🔧','T+3h: Emergency transformer unit dispatched (ETA: 4h)','var(--info)'],
+        ['💡','T+5h: Rotating load cuts — 6h schedule for affected consumers','var(--warn)'],
+        ['✅','T+8h: New transformer installed · Full restoration in 2h','var(--safe)']
+      ],
+      cascade:[80,80,82,86,95,98,94,90,87,84,82,81,80,80,79,79,80,80,80,81,80,80,80,80],
+      route:`<div class="route-step">Cascade Failure Analysis:</div>
+<div class="route-arrow">  TR_8045: Age 24yr · Temp 89°C · 10 overloads · RUL=22d</div>
+<div class="route-arrow">  Weibull: P(fail) = 1 − e^(-(t/η)^β) = 89%</div>
+<div class="route-step">Reroute (Dijkstra):</div>
+<div class="route-arrow">  Erode → Salem SS_SALE [1 hop, 40% headroom]</div>
+<div class="route-arrow">  Namakkal → Tiruchirappalli backup [2 hops]</div>
+<br><span style="color:var(--muted);font-size:10px;">Lesson: Predictive maintenance would have prevented this failure</span>`
+    },
+    collapse:{
+      affected:'38',pop:'72.1M',load:'4,250 MW',
+      timeline:[
+        ['☢','T+0h: Northern grid interconnect trips — frequency drops to 48.2Hz','var(--danger)'],
+        ['🔴','T+0h: Automatic load shedding triggers across all 38 districts','var(--danger)'],
+        ['⚡','T+1h: Statewide blackout — TANGEDCO declares Stage 4 emergency','var(--danger)'],
+        ['📡','T+1h: National Load Despatch Centre notified — black-start protocol initiated','var(--warn)'],
+        ['🔀','T+2h: Mettur & Kundah hydro stations begin black-start sequence','var(--accent)'],
+        ['🏥','T+3h: Critical infrastructure (hospitals, water, telecom) restored via islanded microgrids','var(--warn)'],
+        ['⚙️','T+5h: Southern grid re-synchronized — Madurai, Tirunelveli corridor back online','var(--accent)'],
+        ['🔧','T+9h: Northern corridor re-energized — Chennai metro restoration begins','var(--warn)'],
+        ['📊','T+14h: 65% statewide restoration · frequency stabilized at 49.9Hz','var(--warn)'],
+        ['✅','T+22h: Full statewide restoration complete · post-mortem review scheduled','var(--safe)']
+      ],
+      cascade:[80,40,15,10,18,28,38,50,62,72,80,86,90,88,84,82,81,80,80,80,80,80,80,80],
+      route:`<div class="route-step">Statewide Black-Start Protocol:</div>
+<div class="route-arrow">  Phase 1: Mettur + Kundah hydro self-start (no external power needed)</div>
+<div class="route-arrow">  Phase 2: Energize transmission backbone Salem→Trichy→Madurai</div>
+<div class="route-step">Dijkstra Re-synchronization (priority-weighted):</div>
+<div class="route-arrow">  Priority 1: Hospitals, water treatment, telecom exchanges</div>
+<div class="route-arrow">  Priority 2: Southern corridor [Madurai↔Tirunelveli↔Thoothukudi]</div>
+<div class="route-arrow">  Priority 3: Northern corridor [Chennai↔Tiruvallur↔Kancheepuram]</div>
+<br><span style="color:var(--muted);font-size:10px;">P(cascading collapse)=0.04/yr · Mean time to full restoration ≈ 22h · Max-flow re-route capacity=3,800MW</span>`
+    }
+  };
+  const s=CRISIS_SCENARIOS[type];
+  document.getElementById('crisisAffected').textContent=s.affected;
+  document.getElementById('crisisPopulation').textContent=s.pop;
+  document.getElementById('crisisLoad').textContent=s.load;
+
+  // Severity score (0-1) drives both the siren intensity and the KPI label
+  const severityMap={cyclone:0.55,heatwave:0.45,tsunami:0.5,cascade:0.4,collapse:1.0};
+  const severity=severityMap[type]!=null?severityMap[type]:0.5;
+  const sevEl=document.getElementById('crisisSeverity');
+  const sevLabel=severity>=0.85?'CATASTROPHIC':severity>=0.6?'SEVERE':severity>=0.4?'ELEVATED':'MODERATE';
+  const sevColor=severity>=0.85?'#dc2626':severity>=0.6?'var(--danger)':severity>=0.4?'var(--warn)':'var(--safe)';
+  sevEl.textContent=sevLabel; sevEl.style.color=sevColor;
+
+  // Opening siren — scales pulse count/pitch with severity
+  playCrisisSiren(severity);
+
+  const el=document.getElementById('crisisTimeline');
+  el.innerHTML='';
+  s.timeline.forEach(([num,text,col],i)=>{
+    setTimeout(()=>{
+      const div=document.createElement('div');
+      div.className='phase-step';
+      div.innerHTML=`<div class="phase-num" style="border-color:${col};color:${col};background:${col}22">${num}</div><div class="phase-text" style="color:${col}">${text}</div>`;
+      el.appendChild(div);
+      // Each timeline beat plays a tone matching its color: danger phases alert, warn phases are warm, safe/recovery phases resolve calmly
+      if(col==='var(--danger)') playRiskTone('danger', 0.6+severity*0.3, {doublePulse:false});
+      else if(col==='var(--warn)') playRiskTone('warn', 0.5);
+      else if(col==='var(--safe)') playRiskTone('safe', 0.4);
+      // accent/info phases (AI reroute, dispatch) get no extra tone to avoid clutter
+    },i*700);
+  });
+  // Final resolving chime once the timeline finishes, signalling the recovery plan is ready
+  setTimeout(()=>playResolveChime(), s.timeline.length*700+300);
+
+  const cascadeData=s.cascade;
+  setTimeout(()=>{
+    if(crisisCascadeChart){crisisCascadeChart.data.datasets[0].data=cascadeData;crisisCascadeChart.data.datasets[0].borderColor='#f87171';crisisCascadeChart.update();}
+    if(crisisImpactChart){crisisImpactChart.data.datasets[0].data=crisisImpactChart.data.labels.map(d=>DIST_DATA[d]?(DIST_DATA[d].avg+15+Math.random()*10):90);crisisImpactChart.data.datasets[0].backgroundColor='rgba(248,113,113,0.7)';crisisImpactChart.update();}
+  },2000);
+  document.getElementById('crisisRoute').innerHTML=s.route;
+}
+
+function resetCrisis() {
+  crisisActive=false;
+  document.getElementById('crisisAffected').textContent='0';
+  document.getElementById('crisisPopulation').textContent='0M';
+  document.getElementById('crisisLoad').textContent='0 MW';
+  document.getElementById('crisisSeverity').textContent='IDLE';
+  document.getElementById('crisisSeverity').style.color='var(--safe)';
+  document.getElementById('crisisTimeline').innerHTML='';
+  document.getElementById('crisisRoute').innerHTML='<div style="color:var(--muted)">Select a scenario above to simulate crisis response...</div>';
+  if(crisisCascadeChart){crisisCascadeChart.data.datasets[0].data=Array.from({length:24},()=>80);crisisCascadeChart.data.datasets[0].borderColor='#38bdf8';crisisCascadeChart.update();}
+  if(crisisImpactChart){crisisImpactChart.data.datasets[0].data=crisisImpactChart.data.labels.map(d=>DIST_DATA[d]?(DIST_DATA[d].avg+Math.random()*5):85);crisisImpactChart.data.datasets[0].backgroundColor='rgba(248,113,113,0.6)';crisisImpactChart.update();}
+  playRiskTone('safe', 0.3);
+}
+
+// ═══════════════════════ INIT ═══════════════════════
+initHero();
+</script>
+
+<style>
+.ai-msg{display:flex;gap:10px;margin-bottom:14px;animation:fadeInMsg .3s ease;}
+.ai-msg-user{flex-direction:row-reverse;}
+.ai-avatar{width:30px;height:30px;border-radius:50%;background:rgba(56,189,248,0.15);border:1px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--accent);flex-shrink:0;}
+.ai-msg-user .ai-avatar{background:rgba(129,140,248,0.15);border-color:var(--accent2);color:var(--accent2);}
+.ai-bubble{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:12px;line-height:1.75;max-width:85%;}
+.ai-msg-user .ai-bubble{background:rgba(129,140,248,0.08);border-color:rgba(129,140,248,0.25);}
+@keyframes fadeInMsg{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.ai-typing{display:inline-flex;gap:3px;align-items:center;}
+.ai-typing span{width:5px;height:5px;background:var(--accent);border-radius:50%;animation:typDot 1.2s ease-in-out infinite;}
+.ai-typing span:nth-child(2){animation-delay:.2s;}
+.ai-typing span:nth-child(3){animation-delay:.4s;}
+@keyframes typDot{0%,60%,100%{opacity:.2;transform:scale(.8)}30%{opacity:1;transform:scale(1)}}
+</style>
+
+<!-- AI PAGE -->
+<div class="page" id="page-ai">
+  <div style="margin-bottom:16px;">
+    <div class="hero-title" style="font-size:18px;margin-bottom:4px;">🤖 GridPulse AI Assistant</div>
+    <div style="font-size:12px;color:var(--muted)">Powered by Claude · Ask anything about Tamil Nadu's 332,880-record grid dataset · Real-time analysis</div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 300px;gap:16px;">
+    <div class="card" style="display:flex;flex-direction:column;height:580px;">
+      <div id="aiMessages" style="flex:1;overflow-y:auto;padding:4px 0;scrollbar-width:thin;scrollbar-color:var(--border) transparent;"></div>
+      <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:8px;">
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="aiInput" placeholder="Ask about Tamil Nadu grid data…"
+            style="flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:8px;font-size:12px;outline:none;transition:border-color .2s;"
+            onkeydown="if(event.key==='Enter'){sendAI();}"
+            onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+          <button class="btn" id="aiSendBtn" onclick="sendAI()" style="padding:10px 18px;font-size:13px;">Send</button>
+        </div>
+        <div id="aiError" style="color:var(--danger);font-size:11px;margin-top:6px;display:none;"></div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div class="card">
+        <div class="card-title">Quick Prompts</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <button class="btn" style="text-align:left;font-size:11px;padding:7px 10px;" onclick="quickPrompt('Which 5 districts have the highest overload frequency and why?')">⚡ Top overload districts</button>
+          <button class="btn" style="text-align:left;font-size:11px;padding:7px 10px;" onclick="quickPrompt('Predict load during a 45°C heatwave hitting Chennai — show the math')">🔥 Heatwave prediction</button>
+          <button class="btn" style="text-align:left;font-size:11px;padding:7px 10px;" onclick="quickPrompt('Explain FFT spectral fingerprinting for zone DNA analysis and what anomalies look like')">🧬 DNA fingerprint</button>
+          <button class="btn" style="text-align:left;font-size:11px;padding:7px 10px;" onclick="quickPrompt('Show the optimal carbon mix for Tamil Nadu grid using linear programming math')">🌿 Carbon LP optimizer</button>
+          <button class="btn" style="text-align:left;font-size:11px;padding:7px 10px;" onclick="quickPrompt('Analyze transformer failure risk in Chengalpattu using Weibull survival analysis')">🔧 Transformer Weibull</button>
+          <button class="btn" style="text-align:left;font-size:11px;padding:7px 10px;" onclick="quickPrompt('Explain how Dijkstra shortest path recovers the grid after a cyclone in Cuddalore')">📡 Dijkstra routing</button>
+          <button class="btn btn-warn" style="text-align:left;font-size:11px;padding:7px 10px;" onclick="quickPrompt('Simulate Diwali demand surge across Tamil Nadu — SARIMA decomposition and district impact')">🪔 Festival SARIMA</button>
+          <button class="btn btn-danger" style="text-align:left;font-size:11px;padding:7px 10px;" onclick="quickPrompt('Category 5 cyclone hits Nagapattinam — predict cascade failures and full recovery plan')">🌀 Cyclone cascade</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Dataset Context</div>
+        <div style="font-size:11px;color:var(--muted);line-height:2;">
+          <div>📊 <span style="color:var(--text)">332,880</span> hourly records</div>
+          <div>🏙️ <span style="color:var(--text)">38</span> districts · Jan–Dec 2025</div>
+          <div>⚡ <span style="color:var(--danger)">83,171</span> overload events</div>
+          <div>🔴 <span style="color:var(--danger)">3,277</span> outage events</div>
+          <div>📈 <span style="color:var(--accent)">80.0%</span> average load</div>
+          <div>🔧 Min RUL: <span style="color:var(--danger)">22 days</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════ AI ASSISTANT ═══════════════════════
+let aiInitDone=false, aiHistory=[], aiMsgId=0;
+
+const AI_SYSTEM=`You are GridPulse AI, expert analyst for Tamil Nadu power grid. Dataset: 332,880 hourly records, 38 districts, Jan-Dec 2025.
+
+KEY STATS:
+- Avg load: 80.0% | Overloads: 83,171 (24.9%) | Outages: 3,277 (1.0%)
+- Top overload districts: Theni(2276), Namakkal(2255), Sivagangai(2255), Erode(2249), Tiruvallur(2245)  
+- Most outages: Chengalpattu(109), Dindigul(107), Tiruvallur(104), Vellore(101), Perambalur(100)
+- Avg load range: 79.25% (Pudukkottai) to 80.46% (Erode)
+- Transformer avg: 2,401 kW load / 3,000 kW capacity
+- Weather: avg 32°C, peak ~45°C summers
+
+MATH MODELS USED:
+- ARIMA/SARIMA for demand forecasting with 95% CI
+- Weibull survival: R(t)=e^(-(t/η)^β), η=200−age×4−overloads×2, β=1.5+(temp−50)/40
+- Quadratic programming: min Σ(load−cap)² for load redistribution
+- FFT/DFT: spectral fingerprinting, cosine similarity for district DNA matching
+- Dijkstra shortest path for grid recovery routing
+- Max-flow/min-cut for network rerouting capacity
+- LP: min Σcᵢxᵢ (carbon×generation) for emission optimization
+- Stochastic: P(outage|event) for crisis simulation
+- Bayesian failure probability for transformer prediction
+
+Be specific, cite real district data, show math notation. Target audience: grid operators and hackathon judges.`;
+
+function initAI(){
+  if(aiInitDone)return;
+  aiInitDone=true;
+  appendAI('assistant','Welcome to GridPulse AI! I have access to Tamil Nadu\'s full 1-year dataset — 332,880 records, 38 districts.<br><br>Try asking:<br>• <em>"Which district has the most overloads?"</em><br>• <em>"Predict Diwali demand surge"</em><br>• <em>"Explain Weibull transformer failure model"</em><br>• <em>"Dijkstra recovery after Cuddalore cyclone"</em>');
+}
+
+async function sendAI(){
+  const inp=document.getElementById('aiInput');
+  const msg=inp.value.trim();
+  if(!msg)return;
+  inp.value='';
+  inp.disabled=true;
+  document.getElementById('aiSendBtn').disabled=true;
+  document.getElementById('aiError').style.display='none';
+  appendAI('user',msg);
+  aiHistory.push({role:'user',content:msg});
+  const tid=appendAI('assistant','<div class="ai-typing"><span></span><span></span><span></span></div>');
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,system:AI_SYSTEM,messages:aiHistory})});
+    const d=await r.json();
+    const txt=d.content?.[0]?.text||'Could not generate response.';
+    document.getElementById(tid).querySelector('.ai-bubble').innerHTML=txt.replace(/
+/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/`([^`]+)`/g,'<code style="background:var(--bg);padding:1px 5px;border-radius:3px;font-family:var(--mono);font-size:11px;">$1</code>');
+    aiHistory.push({role:'assistant',content:txt});
+  }catch(e){
+    document.getElementById(tid).remove();
+    document.getElementById('aiError').textContent='Error: '+e.message+'. Check browser console.';
+    document.getElementById('aiError').style.display='block';
+  }
+  inp.disabled=false;
+  document.getElementById('aiSendBtn').disabled=false;
+  inp.focus();
+}
+
+function appendAI(role,html){
+  const id='aim'+(++aiMsgId);
+  const d=document.createElement('div');
+  d.id=id;d.className='ai-msg ai-msg-'+role;
+  d.innerHTML='<div class="ai-avatar">'+(role==='user'?'YOU':'GP')+'</div><div class="ai-bubble">'+html+'</div>';
+  const msgs=document.getElementById('aiMessages');
+  msgs.appendChild(d);
+  msgs.scrollTop=99999;
+  return id;
+}
+
+function quickPrompt(t){
+  document.getElementById('aiInput').value=t;
+  sendAI();
+}
+</script>
+
+</body>
+</html>
